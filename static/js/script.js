@@ -46,4 +46,24 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         }
     }
+    
+    // Handle form on view_pdf.html page
+    const viewPdfForm = document.querySelector('form[action*="process_pdf"]');
+    if (viewPdfForm) {
+        const searchInput = viewPdfForm.querySelector('input[name="text"]');
+        const submitButton = viewPdfForm.querySelector('button[type="submit"]');
+        
+        if (searchInput && submitButton) {
+            // Disable button if search text is empty
+            searchInput.addEventListener('input', function() {
+                submitButton.disabled = this.value.trim().length === 0;
+            });
+            
+            // Add loading indicator
+            viewPdfForm.addEventListener('submit', function() {
+                submitButton.disabled = true;
+                submitButton.innerHTML = '<span class="spinner-border spinner-border-sm mr-2" role="status" aria-hidden="true"></span> Processando...';
+            });
+        }
+    }
 });
