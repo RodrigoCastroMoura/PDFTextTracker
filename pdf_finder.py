@@ -121,12 +121,12 @@ def highlight_text_in_pdf(input_pdf_path, output_pdf_path, text_to_find, highlig
 
                 # Add replacement text if provided
                 if replacement_text:
-                    # Position replacement text slightly above the original
+                    # Position replacement text 2cm above and 5cm to the right
                     replacement_rect = fitz.Rect(
-                        inst.x0,
-                        inst.y0 - 20,  # 20 points above the original text
-                        inst.x1,
-                        inst.y0 - 5
+                        inst.x0 + 141.75,  # 5cm to the right
+                        inst.y0 - 56.7,    # 2cm above
+                        inst.x1 + 141.75,  # maintain same width
+                        inst.y0 - 28.35    # 1cm height for text
                     )
                     page.insert_text(
                         replacement_rect.tl,  # top-left point
@@ -149,6 +149,5 @@ def highlight_text_in_pdf(input_pdf_path, output_pdf_path, text_to_find, highlig
     except Exception as e:
         logger.error(f"Error processing PDF: {str(e)}")
         raise
-
     finally:
         doc.close()
