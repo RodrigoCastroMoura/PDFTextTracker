@@ -121,19 +121,19 @@ def highlight_text_in_pdf(input_pdf_path, output_pdf_path, text_to_find, highlig
 
                 # Add replacement text if provided
                 if replacement_text:
-                    # Position replacement text 2cm above and 5cm to the right
+                    # Position replacement text at same height and 1cm to the right
                     replacement_rect = fitz.Rect(
-                        inst.x0 + 141.75,  # 5cm to the right
-                        inst.y0 - 56.7,    # 2cm above
-                        inst.x1 + 141.75,  # maintain same width
-                        inst.y0 - 28.35    # 1cm height for text
+                        inst.x0 + 28.35,    # 1cm to the right
+                        inst.y0,            # same height as original
+                        inst.x1 + 28.35,    # maintain same width
+                        inst.y0 + 28.35     # 1cm height for text
                     )
                     page.insert_text(
                         replacement_rect.tl,  # top-left point
                         replacement_text,
-                        color=(0, 0, 1),  # Blue color for replacement
-                        fontsize=11,
-                        fontname="helv",
+                        color=(0, 0, 1),     # Blue color for replacement
+                        fontsize=14,         # Slightly larger font
+                        fontname="CoBO",     # Comic Bold - mais parecido com assinatura
                         overlay=True
                     )
 
