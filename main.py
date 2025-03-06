@@ -29,13 +29,7 @@ def view_pdf(filename):
         flash('PDF não encontrado', 'error')
         return redirect(url_for('index'))
 
-    show_replacement_modal = request.args.get('show_modal', 'false') == 'true'
-    original_text = request.args.get('text', '')
-
-    return render_template('view_pdf.html', 
-                         pdf_path=filename,
-                         show_replacement_modal=show_replacement_modal,
-                         original_text=original_text)
+    return render_template('view_pdf.html', pdf_path=filename)
 
 @app.route('/pdf/<path:filename>')
 def view_pdf_file(filename):
@@ -62,10 +56,15 @@ def process_pdf():
             return redirect(url_for('index'))
 
         text = request.form.get('text', '').strip()
+        replacement_text = request.form.get('replacement_text', '').strip()
         use_ocr = request.form.get('use_ocr') == 'on'
 
         if not text:
             flash('Por favor, digite um texto para buscar', 'error')
+            return redirect(url_for('index'))
+
+        if not replacement_text:
+            flash('Por favor, digite um texto para substituição', 'error')
             return redirect(url_for('index'))
 
         # Handle file upload or use existing file
@@ -96,63 +95,28 @@ def process_pdf():
         output_filename = f"output_{os.path.basename(input_filename)}"
         output_path = safe_join(UPLOAD_FOLDER, output_filename)
 
-        # Process PDF
-        stats = highlight_text_in_pdf(input_path, output_path, text, use_ocr=use_ocr)
+        # Process PDF with replacement text
+        stats = highlight_text_in_pdf(
+            input_path,
+            output_path,
+            text,
+            use_ocr=use_ocr,
+            replacement_text=replacement_text
+        )
 
         # Log processing stats
         logger.info(f"PDF processing stats: {stats}")
 
         if stats["total_occurrences"] > 0:
-            # Redirect to view with replacement modal
-            return redirect(url_for('view_pdf', 
-                                  filename=output_filename,
-                                  show_modal='true',
-                                  text=text))
+            flash(f'Encontradas {stats["total_occurrences"]} ocorrências do texto', 'success')
         else:
             flash('Texto não encontrado no documento', 'warning')
-            return redirect(url_for('view_pdf', filename=output_filename))
-
-    except Exception as e:
-        logger.error(f"Error processing PDF: {str(e)}")
-        flash(f'Erro ao processar PDF: {str(e)}', 'error')
-        return redirect(url_for('index'))
-
-@app.route('/replace', methods=['POST'])
-def replace_text():
-    try:
-        pdf_path = request.form.get('pdf_path')
-        original_text = request.form.get('original_text')
-        replacement_text = request.form.get('replacement_text')
-
-        if not all([pdf_path, original_text, replacement_text]):
-            flash('Informações incompletas para substituição', 'error')
-            return redirect(url_for('index'))
-
-        input_path = safe_join(UPLOAD_FOLDER, pdf_path)
-        if not os.path.exists(input_path):
-            flash('PDF não encontrado', 'error')
-            return redirect(url_for('index'))
-
-        # Create new output filename for replacement
-        output_filename = f"replaced_{os.path.basename(pdf_path)}"
-        output_path = safe_join(UPLOAD_FOLDER, output_filename)
-
-        # Process PDF with replacement
-        stats = highlight_text_in_pdf(
-            input_path,
-            output_path,
-            original_text,
-            replacement_text=replacement_text
-        )
-
-        # Log replacement stats
-        logger.info(f"PDF replacement stats: {stats}")
 
         return redirect(url_for('view_pdf', filename=output_filename))
 
     except Exception as e:
-        logger.error(f"Error replacing text in PDF: {str(e)}")
-        flash(f'Erro ao substituir texto no PDF: {str(e)}', 'error')
+        logger.error(f"Error processing PDF: {str(e)}")
+        flash(f'Erro ao processar PDF: {str(e)}', 'error')
         return redirect(url_for('index'))
 
 if __name__ == '__main__':

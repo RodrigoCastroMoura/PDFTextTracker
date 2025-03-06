@@ -14,9 +14,15 @@
             </div>
 
             <div class="mb-3">
-                <label for="text" class="form-label">Texto para Busca</label>
+                <label for="text" class="form-label">Texto para Buscar</label>
                 <input type="text" class="form-control" id="text" name="text" required
                        placeholder="Digite o texto que deseja encontrar e destacar">
+            </div>
+
+            <div class="mb-3">
+                <label for="replacement_text" class="form-label">Texto para Substituição</label>
+                <input type="text" class="form-control" id="replacement_text" name="replacement_text" required
+                       placeholder="Digite o texto que será colocado acima do texto encontrado">
             </div>
 
             <div class="mb-3 form-check">
@@ -41,10 +47,11 @@
     <div class="card-body">
         <ol class="list-group list-group-numbered">
             <li class="list-group-item">Faça upload do seu documento PDF usando o seletor de arquivo acima.</li>
-            <li class="list-group-item">Digite o texto que você deseja encontrar e destacar no PDF.</li>
+            <li class="list-group-item">Digite o texto que você deseja encontrar no PDF.</li>
+            <li class="list-group-item">Digite o texto que será colocado acima do texto encontrado.</li>
             <li class="list-group-item">Ative o OCR se seu PDF contiver texto digitalizado ou imagens.</li>
             <li class="list-group-item">Clique em "Processar PDF" e aguarde o processamento.</li>
-            <li class="list-group-item">O PDF será exibido com os textos encontrados destacados.</li>
+            <li class="list-group-item">O PDF será exibido com os textos encontrados destacados e substituídos.</li>
         </ol>
     </div>
 </div>
