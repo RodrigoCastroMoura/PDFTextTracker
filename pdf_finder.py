@@ -98,7 +98,7 @@ def highlight_text_in_pdf(input_pdf_path, output_pdf_path, text_to_find, highlig
                     ocr_text = perform_ocr_with_api(temp_img.name)
                     if ocr_text and (text_to_find.lower() in ocr_text.lower() or 
                                    normalized_text in normalize_text(ocr_text)):
-                        # Create highlight area for OCR match
+                        # Create area for OCR match
                         width, height = page.rect.width, page.rect.height
                         rect = fitz.Rect(
                             width * 0.1, height * 0.3,
@@ -106,18 +106,13 @@ def highlight_text_in_pdf(input_pdf_path, output_pdf_path, text_to_find, highlig
                         )
                         instances.append(rect)
 
-            # Apply highlights and replacements
+            # Add replacement text for each instance
             for inst in instances:
                 # Store location information
                 stats["locations"].append({
                     "page": page_num,
                     "rect": [inst.x0, inst.y0, inst.x1, inst.y1]
                 })
-
-                # Add highlight
-                highlight = page.add_highlight_annot(inst)
-                highlight.set_colors(stroke=highlight_color)
-                highlight.update()
 
                 # Add replacement text if provided
                 if replacement_text:
