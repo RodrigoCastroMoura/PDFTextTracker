@@ -132,9 +132,9 @@ def highlight_text_in_pdf(input_pdf_path, output_pdf_path, text_to_find, highlig
                         replacement_rect.tl,  # top-left point
                         replacement_text,
                         color=(0, 0, 1),     # Blue color for replacement
-                        fontsize=14,         # Slightly larger font
-                        fontname="CoBO",     # Comic Bold - mais parecido com assinatura
-                        overlay=True
+                        fontsize=16,         # Larger font
+                        fontname="COUR",     # Courier - mais parecido com manuscrito
+                        render_mode=0        # Normal mode, sem sublinhado
                     )
 
                 page_occurrences += 1
