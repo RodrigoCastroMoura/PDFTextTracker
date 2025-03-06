@@ -98,7 +98,6 @@ def highlight_text_in_pdf(input_pdf_path, output_pdf_path, text_to_find, highlig
                     ocr_text = perform_ocr_with_api(temp_img.name)
                     if ocr_text and (text_to_find.lower() in ocr_text.lower() or 
                                    normalized_text in normalize_text(ocr_text)):
-                        # Create highlight area for OCR match
                         width, height = page.rect.width, page.rect.height
                         rect = fitz.Rect(
                             width * 0.1, height * 0.3,
@@ -121,12 +120,12 @@ def highlight_text_in_pdf(input_pdf_path, output_pdf_path, text_to_find, highlig
 
                 # Add replacement text if provided
                 if replacement_text:
-                    # Position replacement text at same height and 1cm to the right
+                    # Position replacement text directly above the original text
                     replacement_rect = fitz.Rect(
-                        inst.x0 + 28.35,    # 1cm to the right
-                        inst.y0,            # same height as original
-                        inst.x1 + 28.35,    # maintain same width
-                        inst.y0 + 28.35     # 1cm height for text
+                        inst.x0,            # same x position as original
+                        inst.y0 - 28.35,    # 1cm above the original text
+                        inst.x1,            # same width as original
+                        inst.y0 - 5         # small gap between replacement and original
                     )
                     page.insert_text(
                         replacement_rect.tl,  # top-left point
