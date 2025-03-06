@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <h2 class="card-title mb-0">PDF Text Search & Highlight</h2>
+    </div>
+    <div class="card-body">
+        <form action="{{ url_for('process_pdf') }}" method="post" enctype="multipart/form-data" id="pdfForm">
+            <div class="mb-3">
+                <label for="file" class="form-label">Select PDF File</label>
+                <input type="file" class="form-control" id="file" name="file" accept=".pdf" required>
+                <div class="form-text">Upload a PDF file to search and highlight text within it.</div>
+            </div>
+
+            <div class="mb-3">
+                <label for="text" class="form-label">Search Text</label>
+                <input type="text" class="form-control" id="text" name="text" required
+                       placeholder="Enter the text you want to find and highlight">
+            </div>
+
+            <div class="mb-3 form-check">
+                <input type="checkbox" class="form-check-input" id="use_ocr" name="use_ocr">
+                <label class="form-check-label" for="use_ocr">
+                    Use OCR (for scanned documents)
+                </label>
+            </div>
+
+            <button type="submit" class="btn btn-primary" id="submitBtn">
+                <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+                Process PDF
+            </button>
+        </form>
+    </div>
+</div>
+
+<div class="card mt-4">
+    <div class="card-header">
+        <h3 class="card-title mb-0">Instructions</h3>
+    </div>
+    <div class="card-body">
+        <ol class="list-group list-group-numbered">
+            <li class="list-group-item">Upload your PDF document using the file selector above.</li>
+            <li class="list-group-item">Enter the text you want to find and highlight in the PDF.</li>
+            <li class="list-group-item">Enable OCR if your PDF contains scanned text or images.</li>
+            <li class="list-group-item">Click "Process PDF" and wait for the highlighted version to download.</li>
+        </ol>
+    </div>
+</div>
+
+<div class="card mt-4">
+    <div class="card-header bg-info text-white">
+        <h3 class="card-title mb-0">Important Notes</h3>
+    </div>
+    <div class="card-body">
+        <ul class="list-group">
+            <li class="list-group-item">OCR processing may take longer for large documents.</li>
+            <li class="list-group-item">OCR highlights might not be as precise as direct text search.</li>
+            <li class="list-group-item">The application supports both regular PDFs and scanned documents.</li>
+        </ul>
+    </div>
+</div>
+{% endblock %}
