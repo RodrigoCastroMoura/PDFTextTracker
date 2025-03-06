@@ -119,9 +119,9 @@ def highlight_text_in_pdf(input_pdf_path, output_pdf_path, text_to_find, highlig
                     # Position replacement text at same height and 1cm to the right
                     replacement_rect = fitz.Rect(
                         inst.x0 + 28.35,    # 1cm to the right
-                        inst.y0,            # same height as original
+                        inst.y1 + 2.835,    # 1mm below the original text
                         inst.x1 + 28.35,    # maintain same width
-                        inst.y0 + 28.35     # 1cm height for text
+                        inst.y1 + 28.35     # 1cm height for text
                     )
                     page.insert_text(
                         replacement_rect.tl,  # top-left point
