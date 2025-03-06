@@ -1,6 +1,6 @@
 import os
 import logging
-from flask import Flask, request, send_file, render_template, redirect, url_for, flash, jsonify
+from flask import Flask, request, send_file, render_template, redirect, url_for, flash
 from werkzeug.utils import safe_join
 import tempfile
 from pdf_finder import highlight_text_in_pdf
@@ -25,7 +25,7 @@ def index():
 
 @app.route('/view/<path:filename>')
 def view_pdf(filename):
-    if not filename or not os.path.exists(os.path.join(UPLOAD_FOLDER, filename)):
+    if not filename or not os.path.exists(safe_join(UPLOAD_FOLDER, filename)):
         flash('PDF não encontrado', 'error')
         return redirect(url_for('index'))
     return render_template('view_pdf.html', pdf_path=filename)
@@ -34,13 +34,18 @@ def view_pdf(filename):
 def view_pdf_file(filename):
     try:
         file_path = safe_join(UPLOAD_FOLDER, filename)
+        if not os.path.exists(file_path):
+            flash('PDF não encontrado', 'error')
+            return redirect(url_for('index'))
         return send_file(
             file_path,
-            mimetype='application/pdf'
+            mimetype='application/pdf',
+            as_attachment=False
         )
     except Exception as e:
         logger.error(f"Error serving PDF file: {str(e)}")
-        return 'PDF não encontrado', 404
+        flash('Erro ao carregar o PDF', 'error')
+        return redirect(url_for('index'))
 
 @app.route('/process', methods=['POST'])
 def process_pdf():
@@ -86,6 +91,9 @@ def process_pdf():
 
         # Process PDF
         stats = highlight_text_in_pdf(input_path, output_path, text, use_ocr=use_ocr)
+
+        # Log processing stats
+        logger.info(f"PDF processing stats: {stats}")
 
         # Redirect to view the processed PDF
         return redirect(url_for('view_pdf', filename=output_filename))

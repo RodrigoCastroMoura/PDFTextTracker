@@ -7,9 +7,9 @@
     </div>
     <div class="card-body">
         <div id="pdfViewer" class="mb-3" style="height: 800px;">
-            <iframe id="pdfFrame" style="width: 100%; height: 100%; border: none;"></iframe>
+            <iframe src="{{ url_for('view_pdf_file', filename=pdf_path) }}" style="width: 100%; height: 100%; border: none;"></iframe>
         </div>
-        
+
         <div class="d-flex justify-content-between">
             <a href="{{ url_for('index') }}" class="btn btn-secondary">
                 <i class="fas fa-arrow-left"></i> Voltar
@@ -30,12 +30,4 @@
         </div>
     </div>
 </div>
-
-<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    const pdfFrame = document.getElementById('pdfFrame');
-    pdfFrame.src = "{{ url_for('view_pdf_file', filename=pdf_path) }}";
-});
-</script>
 {% endblock %}
