@@ -1,0 +1,360 @@
+# PDF Finder com OCR no Replit
+
+Este prompt permite criar um aplicativo no Replit que busca e destaca texto em PDFs, incluindo recursos de OCR usando APIs gratuitas.
+
+## 1. Crie um novo Repl com Python
+
+Acesse o Replit e crie um novo projeto Python.
+
+## 2. Configure as dependências
+
+Modifique o arquivo `pyproject.toml` para incluir as dependências necessárias:
+
+```toml
+[tool.poetry.dependencies]
+python = ">=3.8.0,<3.9"
+replit = "^3.2.4"
+Flask = "^2.0.1"
+PyMuPDF = "^1.19.6"
+requests = "^2.28.1"
+Pillow = "^9.2.0"
+pdf2image = "^1.16.0"
+```
+
+## 3. Crie o arquivo principal para processamento de PDF
+
+Crie um arquivo chamado `pdf_finder.py` com o seguinte código:
+
+```python
+import fitz  # PyMuPDF
+import re
+import unicodedata
+import os
+import tempfile
+import requests
+import json
+import base64
+from PIL import Image
+import io
+import time
+from pdf2image import convert_from_path
+
+def normalize_text(text):
+    """Normaliza o texto removendo acentos e convertendo para minúsculas"""
+    normalized = unicodedata.normalize('NFKD', text)
+    normalized = ''.join([c for c in normalized if not unicodedata.combining(c)])
+    normalized = normalized.lower()
+    normalized = re.sub(r'\s+', ' ', normalized).strip()
+    return normalized
+
+def perform_ocr_with_api(image_path):
+    """
+    Realiza OCR usando a API gratuita do OCR.space
+    Você pode obter uma chave gratuita em https://ocr.space/OCRAPI
+    """
+    # Substitua pela sua chave gratuita da API OCR.space
+    api_key = "K81445401788957"  # Chave demo, funciona com limitações
+    
+    try:
+        with open(image_path, 'rb') as f:
+            img_data = f.read()
+        
+        # Codificar a imagem em base64
+        base64_image = base64.b64encode(img_data).decode('utf-8')
+        
+        payload = {
+            'apikey': api_key,
+            'language': 'por',  # Português - mude para 'eng' para inglês
+            'base64Image': 'data:image/png;base64,' + base64_image,
+            'scale': 'true',
+            'isTable': 'false'
+        }
+        
+        # Alternativamente, para upload direto (em vez de base64):
+        # files = {'file': open(image_path, 'rb')}
+        # response = requests.post('https://api.ocr.space/parse/image', files=files, data=payload)
+        
+        response = requests.post('https://api.ocr.space/parse/image', json=payload)
+        result = response.json()
+        
+        if result['OCRExitCode'] == 1:  # Sucesso
+            extracted_text = ' '.join([page['ParsedText'] for page in result['ParsedResults']])
+            return extracted_text
+        else:
+            print(f"Erro OCR: {result['ErrorMessage'] if 'ErrorMessage' in result else 'Erro desconhecido'}")
+            return ""
+    except Exception as e:
+        print(f"Erro ao chamar API OCR: {str(e)}")
+        return ""
+
+def highlight_text_in_pdf(input_pdf_path, output_pdf_path, text_to_find, highlight_color=(1, 1, 0), use_ocr=False):
+    """
+    Busca e destaca texto em um PDF, com suporte a OCR opcional
+    """
+    # Abrir o documento
+    doc = fitz.open(input_pdf_path)
+    
+    # Normalizar o texto de busca
+    normalized_text = normalize_text(text_to_find)
+    
+    # Estatísticas
+    stats = {
+        "total_occurrences": 0,
+        "pages_with_occurrences": 0,
+        "pages_processed": 0,
+        "ocr_used": False
+    }
+    
+    # Processar cada página
+    for page_num, page in enumerate(doc):
+        stats["pages_processed"] += 1
+        page_occurrences = 0
+        
+        # Extrair texto da página e normalizar
+        page_text = page.get_text()
+        normalized_page_text = normalize_text(page_text)
+        
+        # Buscar todas as instâncias (caso exato)
+        instances = page.search_for(text_to_find, quads=False)
+        
+        # Se não encontrou com busca exata, tentar com texto normalizado
+        if not instances and normalized_text in normalized_page_text:
+            # Extrair palavras com coordenadas
+            words = page.get_text("words")
+            
+            # Para cada palavra, verificar se pode ser parte do texto
+            for word in words:
+                x0, y0, x1, y1, text, _, _ = word
+                
+                if text_to_find.lower() in text.lower():
+                    instances.append(fitz.Rect(x0, y0, x1, y1))
+        
+        # Se ainda não encontrou e OCR está habilitado
+        if not instances and use_ocr:
+            stats["ocr_used"] = True
+            
+            # Criar diretório temporário
+            with tempfile.TemporaryDirectory() as temp_dir:
+                try:
+                    # Renderizar página como imagem
+                    pix = page.get_pixmap(matrix=fitz.Matrix(300/72, 300/72))
+                    image_path = os.path.join(temp_dir, f"page_{page_num}.png")
+                    pix.save(image_path)
+                    
+                    # Realizar OCR na imagem
+                    ocr_text = perform_ocr_with_api(image_path)
+                    
+                    # Verificar se o texto foi encontrado via OCR
+                    if text_to_find in ocr_text or normalized_text in normalize_text(ocr_text):
+                        # Como não temos coordenadas precisas do OCR, destacar área aproximada
+                        width, height = page.rect.width, page.rect.height
+                        # Criar um retângulo no meio da página
+                        x0 = width * 0.1
+                        y0 = height * 0.3
+                        x1 = width * 0.9
+                        y1 = height * 0.7
+                        instances.append(fitz.Rect(x0, y0, x1, y1))
+                except Exception as e:
+                    print(f"Erro no processamento OCR: {str(e)}")
+        
+        # Destacar todas as instâncias
+        for inst in instances:
+            highlight = page.add_highlight_annot(inst)
+            highlight.set_colors(stroke=highlight_color)
+            highlight.update()
+            page_occurrences += 1
+        
+        stats["total_occurrences"] += page_occurrences
+        if page_occurrences > 0:
+            stats["pages_with_occurrences"] += 1
+    
+    # Salvar o documento com os destaques
+    doc.save(output_pdf_path)
+    doc.close()
+    
+    return stats
+```
+
+## 4. Crie o arquivo da aplicação Flask
+
+Crie um arquivo chamado `app.py` para a interface web:
+
+```python
+from flask import Flask, request, send_file, render_template, redirect, url_for, flash, jsonify
+import os
+import traceback
+from pdf_finder import highlight_text_in_pdf
+
+app = Flask(__name__)
+app.secret_key = 'sua_chave_secreta'  # Necessário para flash messages
+UPLOAD_FOLDER = './uploads'
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+
+@app.route('/')
+def index():
+    return render_template('index.html')
+
+@app.route('/process', methods=['POST'])
+def process_pdf():
+    if 'file' not in request.files:
+        return redirect(url_for('index'))
+    
+    file = request.files['file']
+    text = request.form.get('text', '')
+    use_ocr = request.form.get('use_ocr') == 'on'
+    
+    if not file or not text:
+        return redirect(url_for('index'))
+    
+    try:
+        # Salvar arquivo enviado
+        input_path = os.path.join(UPLOAD_FOLDER, 'input.pdf')
+        output_path = os.path.join(UPLOAD_FOLDER, 'output.pdf')
+        
+        file.save(input_path)
+        
+        # Processar PDF
+        stats = highlight_text_in_pdf(input_path, output_path, text, use_ocr=use_ocr)
+        
+        # Enviar arquivo processado
+        return send_file(output_path, as_attachment=True, download_name='highlighted.pdf')
+    except Exception as e:
+        traceback.print_exc()
+        return jsonify({"error": str(e)}), 500
+
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=8080)
+```
+
+## 5. Crie a interface HTML
+
+Crie uma pasta `templates` e um arquivo `index.html` dentro dela:
+
+```html
+<!DOCTYPE html>
+<html>
+<head>
+    <title>PDF Text Highlighter com OCR</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            max-width: 700px; 
+            margin: 0 auto; 
+            padding: 20px; 
+            line-height: 1.6;
+        }
+        .container {
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 20px;
+            background-color: #f9f9f9;
+        }
+        .form-group { 
+            margin-bottom: 15px; 
+        }
+        label { 
+            display: block; 
+            margin-bottom: 5px; 
+            font-weight: bold;
+        }
+        input[type="text"], input[type="file"] {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        .checkbox-group {
+            margin: 10px 0;
+        }
+        .checkbox-group label {
+            display: inline;
+            font-weight: normal;
+            margin-left: 5px;
+        }
+        button { 
+            background-color: #4CAF50; 
+            color: white; 
+            padding: 10px 15px; 
+            border: none; 
+            border-radius: 4px;
+            cursor: pointer; 
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .note {
+            background-color: #fffde7;
+            border-left: 4px solid #ffeb3b;
+            padding: 10px;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>PDF Text Highlighter com OCR</h1>
+    
+    <div class="container">
+        <form action="/process" method="post" enctype="multipart/form-data">
+            <div class="form-group">
+                <label>Selecione um PDF:</label>
+                <input type="file" name="file" accept=".pdf" required>
+            </div>
+            
+            <div class="form-group">
+                <label>Texto para destacar:</label>
+                <input type="text" name="text" required placeholder="Digite o texto que deseja encontrar e destacar">
+            </div>
+            
+            <div class="checkbox-group">
+                <input type="checkbox" id="use_ocr" name="use_ocr">
+                <label for="use_ocr">Usar OCR (para PDFs escaneados ou com texto não selecionável)</label>
+            </div>
+            
+            <button type="submit">Processar PDF</button>
+        </form>
+        
+        <div class="note">
+            <strong>Nota:</strong> O OCR utiliza a API gratuita OCR.space, que tem limites de uso. O processamento com OCR pode levar mais tempo. O destaque com OCR é aproximado.
+        </div>
+    </div>
+</body>
+</html>
+```
+
+## 6. Execute o aplicativo
+
+1. Se os pacotes não forem instalados automaticamente, execute no Shell do Replit:
+   ```
+   pip install -r requirements.txt
+   ```
+
+2. Execute o projeto clicando no botão "Run" no Replit
+
+3. Acesse a aplicação web através da URL fornecida pelo Replit
+
+## 7. Como usar
+
+1. Faça upload de um PDF
+2. Digite o texto que deseja encontrar e destacar
+3. Marque a opção "Usar OCR" se o PDF for escaneado ou se o texto não for selecionável
+4. Clique em "Processar PDF"
+5. Faça download do PDF processado com os destaques
+
+## Observações importantes
+
+- A API OCR.space tem limites de uso na versão gratuita (cerca de 500 requisições por mês)
+- O destaque em PDFs processados via OCR será uma aproximação, pois a API não retorna coordenadas precisas
+- O processamento com OCR é mais lento que a busca direta
+- Para PDFs grandes, o processamento pode demorar mais tempo
+
+## Alternativas de APIs OCR gratuitas
+
+Se preferir, você pode substituir a função `perform_ocr_with_api()` para usar outras APIs:
+
+1. **Google Cloud Vision** - tem um período gratuito generoso
+2. **Azure Computer Vision** - oferece um nível gratuito com limite mensal
+3. **Tesseract.js** - versão JavaScript do Tesseract que pode funcionar no navegador
+
+Para usar essas alternativas, você precisaria modificar a função de OCR no código.
