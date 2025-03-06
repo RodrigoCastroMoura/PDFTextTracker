@@ -28,7 +28,14 @@ def view_pdf(filename):
     if not filename or not os.path.exists(safe_join(UPLOAD_FOLDER, filename)):
         flash('PDF não encontrado', 'error')
         return redirect(url_for('index'))
-    return render_template('view_pdf.html', pdf_path=filename)
+
+    show_replacement_modal = request.args.get('show_modal', 'false') == 'true'
+    original_text = request.args.get('text', '')
+
+    return render_template('view_pdf.html', 
+                         pdf_path=filename,
+                         show_replacement_modal=show_replacement_modal,
+                         original_text=original_text)
 
 @app.route('/pdf/<path:filename>')
 def view_pdf_file(filename):
@@ -95,12 +102,57 @@ def process_pdf():
         # Log processing stats
         logger.info(f"PDF processing stats: {stats}")
 
-        # Redirect to view the processed PDF
-        return redirect(url_for('view_pdf', filename=output_filename))
+        if stats["total_occurrences"] > 0:
+            # Redirect to view with replacement modal
+            return redirect(url_for('view_pdf', 
+                                  filename=output_filename,
+                                  show_modal='true',
+                                  text=text))
+        else:
+            flash('Texto não encontrado no documento', 'warning')
+            return redirect(url_for('view_pdf', filename=output_filename))
 
     except Exception as e:
         logger.error(f"Error processing PDF: {str(e)}")
         flash(f'Erro ao processar PDF: {str(e)}', 'error')
+        return redirect(url_for('index'))
+
+@app.route('/replace', methods=['POST'])
+def replace_text():
+    try:
+        pdf_path = request.form.get('pdf_path')
+        original_text = request.form.get('original_text')
+        replacement_text = request.form.get('replacement_text')
+
+        if not all([pdf_path, original_text, replacement_text]):
+            flash('Informações incompletas para substituição', 'error')
+            return redirect(url_for('index'))
+
+        input_path = safe_join(UPLOAD_FOLDER, pdf_path)
+        if not os.path.exists(input_path):
+            flash('PDF não encontrado', 'error')
+            return redirect(url_for('index'))
+
+        # Create new output filename for replacement
+        output_filename = f"replaced_{os.path.basename(pdf_path)}"
+        output_path = safe_join(UPLOAD_FOLDER, output_filename)
+
+        # Process PDF with replacement
+        stats = highlight_text_in_pdf(
+            input_path,
+            output_path,
+            original_text,
+            replacement_text=replacement_text
+        )
+
+        # Log replacement stats
+        logger.info(f"PDF replacement stats: {stats}")
+
+        return redirect(url_for('view_pdf', filename=output_filename))
+
+    except Exception as e:
+        logger.error(f"Error replacing text in PDF: {str(e)}")
+        flash(f'Erro ao substituir texto no PDF: {str(e)}', 'error')
         return redirect(url_for('index'))
 
 if __name__ == '__main__':

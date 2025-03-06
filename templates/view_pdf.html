@@ -33,4 +33,40 @@
         </div>
     </div>
 </div>
+
+<!-- Modal de Substituição -->
+<div class="modal fade" id="replacementModal" tabindex="-1" aria-labelledby="replacementModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="replacementModalLabel">Substituir Texto Encontrado</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+            </div>
+            <div class="modal-body">
+                <form action="{{ url_for('replace_text') }}" method="post" id="replacementForm">
+                    <input type="hidden" name="pdf_path" value="{{ pdf_path }}">
+                    <input type="hidden" name="original_text" id="originalText">
+                    <div class="mb-3">
+                        <label for="replacementText" class="form-label">Nova palavra para substituir o texto encontrado:</label>
+                        <input type="text" class="form-control" id="replacementText" name="replacement_text" required>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="submit" form="replacementForm" class="btn btn-primary">Substituir</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if show_replacement_modal %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        var replacementModal = new bootstrap.Modal(document.getElementById('replacementModal'));
+        document.getElementById('originalText').value = "{{ original_text }}";
+        replacementModal.show();
+    });
+</script>
+{% endif %}
 {% endblock %}
