@@ -3,32 +3,32 @@
 {% block content %}
 <div class="card">
     <div class="card-header">
-        <h2 class="card-title mb-0">PDF Text Search & Highlight</h2>
+        <h2 class="card-title mb-0">Busca e Destaque em PDF</h2>
     </div>
     <div class="card-body">
         <form action="{{ url_for('process_pdf') }}" method="post" enctype="multipart/form-data" id="pdfForm">
             <div class="mb-3">
-                <label for="file" class="form-label">Select PDF File</label>
+                <label for="file" class="form-label">Selecionar arquivo PDF</label>
                 <input type="file" class="form-control" id="file" name="file" accept=".pdf" required>
-                <div class="form-text">Upload a PDF file to search and highlight text within it.</div>
+                <div class="form-text">Faça upload de um arquivo PDF para buscar e destacar texto.</div>
             </div>
 
             <div class="mb-3">
-                <label for="text" class="form-label">Search Text</label>
+                <label for="text" class="form-label">Texto para Busca</label>
                 <input type="text" class="form-control" id="text" name="text" required
-                       placeholder="Enter the text you want to find and highlight">
+                       placeholder="Digite o texto que deseja encontrar e destacar">
             </div>
 
             <div class="mb-3 form-check">
                 <input type="checkbox" class="form-check-input" id="use_ocr" name="use_ocr">
                 <label class="form-check-label" for="use_ocr">
-                    Use OCR (for scanned documents)
+                    Usar OCR (para documentos digitalizados)
                 </label>
             </div>
 
             <button type="submit" class="btn btn-primary" id="submitBtn">
                 <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
-                Process PDF
+                Processar PDF
             </button>
         </form>
     </div>
@@ -36,27 +36,28 @@
 
 <div class="card mt-4">
     <div class="card-header">
-        <h3 class="card-title mb-0">Instructions</h3>
+        <h3 class="card-title mb-0">Instruções</h3>
     </div>
     <div class="card-body">
         <ol class="list-group list-group-numbered">
-            <li class="list-group-item">Upload your PDF document using the file selector above.</li>
-            <li class="list-group-item">Enter the text you want to find and highlight in the PDF.</li>
-            <li class="list-group-item">Enable OCR if your PDF contains scanned text or images.</li>
-            <li class="list-group-item">Click "Process PDF" and wait for the highlighted version to download.</li>
+            <li class="list-group-item">Faça upload do seu documento PDF usando o seletor de arquivo acima.</li>
+            <li class="list-group-item">Digite o texto que você deseja encontrar e destacar no PDF.</li>
+            <li class="list-group-item">Ative o OCR se seu PDF contiver texto digitalizado ou imagens.</li>
+            <li class="list-group-item">Clique em "Processar PDF" e aguarde o processamento.</li>
+            <li class="list-group-item">O PDF será exibido com os textos encontrados destacados.</li>
         </ol>
     </div>
 </div>
 
 <div class="card mt-4">
     <div class="card-header bg-info text-white">
-        <h3 class="card-title mb-0">Important Notes</h3>
+        <h3 class="card-title mb-0">Observações Importantes</h3>
     </div>
     <div class="card-body">
         <ul class="list-group">
-            <li class="list-group-item">OCR processing may take longer for large documents.</li>
-            <li class="list-group-item">OCR highlights might not be as precise as direct text search.</li>
-            <li class="list-group-item">The application supports both regular PDFs and scanned documents.</li>
+            <li class="list-group-item">O processamento OCR pode levar mais tempo para documentos grandes.</li>
+            <li class="list-group-item">Destaques com OCR podem não ser tão precisos quanto a busca direta.</li>
+            <li class="list-group-item">O aplicativo suporta PDFs normais e documentos digitalizados.</li>
         </ul>
     </div>
 </div>

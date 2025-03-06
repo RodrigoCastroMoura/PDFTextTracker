@@ -1,6 +1,7 @@
 import os
 import logging
 from flask import Flask, request, send_file, render_template, redirect, url_for, flash, jsonify
+from werkzeug.utils import safe_join
 import tempfile
 from pdf_finder import highlight_text_in_pdf
 
@@ -22,60 +23,76 @@ def allowed_file(filename):
 def index():
     return render_template('index.html')
 
+@app.route('/view/<path:filename>')
+def view_pdf(filename):
+    if not filename or not os.path.exists(os.path.join(UPLOAD_FOLDER, filename)):
+        flash('PDF não encontrado', 'error')
+        return redirect(url_for('index'))
+    return render_template('view_pdf.html', pdf_path=filename)
+
+@app.route('/pdf/<path:filename>')
+def view_pdf_file(filename):
+    try:
+        file_path = safe_join(UPLOAD_FOLDER, filename)
+        return send_file(
+            file_path,
+            mimetype='application/pdf'
+        )
+    except Exception as e:
+        logger.error(f"Error serving PDF file: {str(e)}")
+        return 'PDF não encontrado', 404
+
 @app.route('/process', methods=['POST'])
 def process_pdf():
     try:
-        if 'file' not in request.files:
-            flash('No file selected', 'error')
+        if 'file' not in request.files and 'pdf_path' not in request.form:
+            flash('Nenhum arquivo selecionado', 'error')
             return redirect(url_for('index'))
-        
-        file = request.files['file']
+
         text = request.form.get('text', '').strip()
         use_ocr = request.form.get('use_ocr') == 'on'
-        
-        if not file or file.filename == '':
-            flash('No file selected', 'error')
-            return redirect(url_for('index'))
-            
+
         if not text:
-            flash('Please enter text to search', 'error')
+            flash('Por favor, digite um texto para buscar', 'error')
             return redirect(url_for('index'))
-            
-        if not allowed_file(file.filename):
-            flash('Invalid file type. Please upload a PDF file.', 'error')
-            return redirect(url_for('index'))
-        
-        # Create temporary files for processing
-        with tempfile.NamedTemporaryFile(suffix='.pdf', delete=False) as input_file:
-            input_path = input_file.name
+
+        # Handle file upload or use existing file
+        if 'file' in request.files:
+            file = request.files['file']
+            if not file or file.filename == '':
+                flash('Nenhum arquivo selecionado', 'error')
+                return redirect(url_for('index'))
+
+            if not allowed_file(file.filename):
+                flash('Tipo de arquivo inválido. Por favor, envie um arquivo PDF.', 'error')
+                return redirect(url_for('index'))
+
+            # Save uploaded file
+            input_filename = f"input_{os.path.basename(file.filename)}"
+            input_path = safe_join(UPLOAD_FOLDER, input_filename)
             file.save(input_path)
-            
-        with tempfile.NamedTemporaryFile(suffix='.pdf', delete=False) as output_file:
-            output_path = output_file.name
-        
-        try:
-            # Process PDF
-            stats = highlight_text_in_pdf(input_path, output_path, text, use_ocr=use_ocr)
-            
-            # Send processed file
-            return send_file(
-                output_path,
-                as_attachment=True,
-                download_name='highlighted.pdf',
-                mimetype='application/pdf'
-            )
-        
-        finally:
-            # Cleanup temporary files
-            try:
-                os.unlink(input_path)
-                os.unlink(output_path)
-            except Exception as e:
-                logger.error(f"Error cleaning up temporary files: {str(e)}")
-                
+        else:
+            # Use existing file
+            input_filename = request.form['pdf_path']
+            input_path = safe_join(UPLOAD_FOLDER, input_filename)
+
+        if not os.path.exists(input_path):
+            flash('Arquivo PDF não encontrado', 'error')
+            return redirect(url_for('index'))
+
+        # Create output filename
+        output_filename = f"output_{os.path.basename(input_filename)}"
+        output_path = safe_join(UPLOAD_FOLDER, output_filename)
+
+        # Process PDF
+        stats = highlight_text_in_pdf(input_path, output_path, text, use_ocr=use_ocr)
+
+        # Redirect to view the processed PDF
+        return redirect(url_for('view_pdf', filename=output_filename))
+
     except Exception as e:
         logger.error(f"Error processing PDF: {str(e)}")
-        flash(f'Error processing PDF: {str(e)}', 'error')
+        flash(f'Erro ao processar PDF: {str(e)}', 'error')
         return redirect(url_for('index'))
 
 if __name__ == '__main__':
