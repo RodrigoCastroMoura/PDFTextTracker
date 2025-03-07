@@ -62,12 +62,16 @@ def process_pdf_signatures(input_pdf_path, replacement_text=None):
     if not os.path.exists(input_pdf_path):
         raise FileNotFoundError("Input PDF file not found")
 
+    # Criar nome do arquivo de saída
+    output_path = input_pdf_path.replace('.pdf', '_processado.pdf')
+
     doc = fitz.open(input_pdf_path)
     stats = {
         "total_signature_lines": 0,
         "pages_with_signatures": 0,
         "pages_processed": 0,
-        "signature_locations": []
+        "signature_locations": [],
+        "output_path": output_path
     }
 
     try:
@@ -102,9 +106,9 @@ def process_pdf_signatures(input_pdf_path, replacement_text=None):
                             render_mode=0        # Modo normal
                         )
 
-        # Se houver texto de substituição, salvar as alterações
+        # Salvar em um novo arquivo se houver texto de substituição
         if replacement_text:
-            doc.save(input_pdf_path)
+            doc.save(output_path)
 
         return stats
 

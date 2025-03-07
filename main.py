@@ -93,7 +93,9 @@ def process_pdf():
         else:
             flash('Nenhuma linha de assinatura encontrada no documento', 'warning')
 
-        return redirect(url_for('view_pdf', filename=input_filename))
+        # Use the processed file if available, otherwise use the input file
+        view_filename = os.path.basename(stats.get("output_path", input_path))
+        return redirect(url_for('view_pdf', filename=view_filename))
 
     except Exception as e:
         logger.error(f"Error processing PDF: {str(e)}")
