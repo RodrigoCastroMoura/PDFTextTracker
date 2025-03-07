@@ -64,6 +64,7 @@ def process_pdf():
 
         file = request.files['file']
         signer_name = request.form.get('signer_name', '').strip()
+        signature_style = request.form.get('signature_style', 'cursive')
 
         if not file or file.filename == '':
             flash('Nenhum arquivo selecionado', 'error')
@@ -87,7 +88,7 @@ def process_pdf():
             return redirect(url_for('index'))
 
         # Process PDF to find signature lines and add signer's name
-        stats = process_pdf_signatures(input_path, signer_name)
+        stats = process_pdf_signatures(input_path, signer_name, signature_style)
 
         if stats["total_signature_lines"] > 0:
             msg = f'Documento assinado por {signer_name} em {stats["total_signature_lines"]} locais'

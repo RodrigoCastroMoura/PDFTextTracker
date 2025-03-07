@@ -20,6 +20,54 @@
                 <div class="form-text">Este nome será usado como assinatura digital no documento.</div>
             </div>
 
+            <div class="mb-3">
+                <label class="form-label">Estilo da Assinatura</label>
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <div class="card h-100">
+                            <div class="card-body text-center">
+                                <h3 class="signature-preview" style="font-family: 'Dancing Script', cursive;">Nome</h3>
+                                <div class="form-check mt-2">
+                                    <input class="form-check-input" type="radio" name="signature_style" 
+                                           id="style1" value="cursive" checked>
+                                    <label class="form-check-label" for="style1">
+                                        Manuscrita Elegante
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card h-100">
+                            <div class="card-body text-center">
+                                <h3 class="signature-preview" style="font-family: 'Homemade Apple', cursive;">Nome</h3>
+                                <div class="form-check mt-2">
+                                    <input class="form-check-input" type="radio" name="signature_style" 
+                                           id="style2" value="handwritten">
+                                    <label class="form-check-label" for="style2">
+                                        Manuscrita Casual
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card h-100">
+                            <div class="card-body text-center">
+                                <h3 class="signature-preview" style="font-family: 'Pacifico', cursive;">Nome</h3>
+                                <div class="form-check mt-2">
+                                    <input class="form-check-input" type="radio" name="signature_style" 
+                                           id="style3" value="artistic">
+                                    <label class="form-check-label" for="style3">
+                                        Artística
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <button type="submit" class="btn btn-primary" id="submitBtn">
                 <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
                 Assinar PDF
@@ -36,6 +84,7 @@
         <ol class="list-group list-group-numbered">
             <li class="list-group-item">Faça upload do documento PDF que precisa ser assinado.</li>
             <li class="list-group-item">Digite o nome completo do signatário.</li>
+            <li class="list-group-item">Escolha o estilo de assinatura desejado.</li>
             <li class="list-group-item">O sistema irá encontrar automaticamente os locais para assinatura.</li>
             <li class="list-group-item">As áreas de assinatura são identificadas por:</li>
             <ul class="list-group">
@@ -46,17 +95,30 @@
         </ol>
     </div>
 </div>
+{% endblock %}
 
-<div class="card mt-4">
-    <div class="card-header bg-info text-white">
-        <h3 class="card-title mb-0">Informações Importantes</h3>
-    </div>
-    <div class="card-body">
-        <ul class="list-group">
-            <li class="list-group-item">O sistema identifica automaticamente áreas para assinatura no documento.</li>
-            <li class="list-group-item">A assinatura digital incluirá o nome do signatário e a data/hora da assinatura.</li>
-            <li class="list-group-item">Um novo arquivo PDF será gerado com todas as assinaturas aplicadas.</li>
-        </ul>
-    </div>
-</div>
+{% block extra_head %}
+<link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&family=Homemade+Apple&family=Pacifico&display=swap" rel="stylesheet">
+<style>
+.signature-preview {
+    margin: 10px 0;
+    color: #0d6efd;
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const signerNameInput = document.getElementById('signer_name');
+    const previews = document.querySelectorAll('.signature-preview');
+
+    signerNameInput.addEventListener('input', function(e) {
+        const name = e.target.value || 'Nome';
+        previews.forEach(preview => {
+            preview.textContent = name;
+        });
+    });
+});
+</script>
 {% endblock %}

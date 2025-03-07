@@ -3,9 +3,27 @@ import re
 import unicodedata
 import os
 import logging
-from datetime import datetime
 
 logger = logging.getLogger(__name__)
+
+# Definição dos estilos de assinatura
+SIGNATURE_STYLES = {
+    'cursive': {
+        'font': 'Dancing Script',
+        'size': 24,
+        'color': (0, 0, 1)  # Azul
+    },
+    'handwritten': {
+        'font': 'Homemade Apple',
+        'size': 22,
+        'color': (0, 0, 0.7)  # Azul escuro
+    },
+    'artistic': {
+        'font': 'Pacifico',
+        'size': 26,
+        'color': (0.2, 0, 0.8)  # Roxo azulado
+    }
+}
 
 def normalize_text(text):
     """Normalizes text by removing accents and converting to lowercase"""
@@ -73,7 +91,7 @@ def find_signature_lines(page):
 
     return signature_areas
 
-def process_pdf_signatures(input_pdf_path, signer_name=None):
+def process_pdf_signatures(input_pdf_path, signer_name=None, signature_style='cursive'):
     """Processa o PDF e retorna informações sobre linhas de assinatura encontradas"""
     if not os.path.exists(input_pdf_path):
         raise FileNotFoundError("Input PDF file not found")
@@ -116,14 +134,17 @@ def process_pdf_signatures(input_pdf_path, signer_name=None):
 
                     # Adicionar assinatura digital acima da linha
                     if signer_name:
+                        # Obter estilo da assinatura
+                        style = SIGNATURE_STYLES.get(signature_style, SIGNATURE_STYLES['cursive'])
+
                         # Adicionar nome como assinatura (mais próximo da linha)
                         page.insert_text(
-                            point=(rect.x0, rect.y0 - 0.5675),  # 0.2mm acima da linha (mais próximo)
+                            point=(rect.x0, rect.y0 - 0.5675),  # 0.2mm acima da linha
                             text=signer_name,
-                            color=(0, 0, 1),     # Cor azul
-                            fontsize=16,         # Tamanho da fonte
-                            fontname="Helv",     # Fonte padrão
-                            render_mode=0        # Modo normal
+                            color=style['color'],     # Cor do estilo
+                            fontsize=style['size'],   # Tamanho da fonte do estilo
+                            fontname=style['font'],   # Fonte do estilo
+                            render_mode=0             # Modo normal
                         )
 
         # Salvar em um novo arquivo se houver assinatura
