@@ -9,17 +9,17 @@ logger = logging.getLogger(__name__)
 # Definição dos estilos de assinatura
 SIGNATURE_STYLES = {
     'cursive': {
-        'font': 'Dancing Script',
+        'font': 'Courier',  # Fonte padrão mais cursiva
         'size': 24,
         'color': (0, 0, 1)  # Azul
     },
     'handwritten': {
-        'font': 'Homemade Apple',
+        'font': 'Times-Roman',  # Fonte mais formal
         'size': 22,
         'color': (0, 0, 0.7)  # Azul escuro
     },
     'artistic': {
-        'font': 'Pacifico',
+        'font': 'Helvetica',  # Fonte moderna
         'size': 26,
         'color': (0.2, 0, 0.8)  # Roxo azulado
     }
