@@ -10,10 +10,24 @@
             <iframe src="{{ url_for('view_pdf_file', filename=pdf_path) }}?t={{ range(1000000) | random }}" style="width: 100%; height: 100%; border: none;"></iframe>
         </div>
 
-        {% if stats and stats.signature_lines_found > 0 %}
+        {% if stats and stats.total_signature_lines > 0 %}
         <div class="alert alert-info">
             <h5>Linhas de Assinatura Encontradas</h5>
-            <p>Foram encontradas {{ stats.signature_lines_found }} possíveis áreas para assinatura neste documento.</p>
+            <p>Foram encontradas {{ stats.total_signature_lines }} possíveis áreas para assinatura neste documento.</p>
+
+            <h6 class="mt-3">Localização das Linhas:</h6>
+            <ul class="list-group">
+            {% for location in stats.signature_locations %}
+                <li class="list-group-item">
+                    Página {{ location.page + 1 }}: 
+                    {% if location.text %}
+                        "{{ location.text }}"
+                    {% else %}
+                        Linha de assinatura
+                    {% endif %}
+                </li>
+            {% endfor %}
+            </ul>
         </div>
         {% endif %}
 
@@ -21,23 +35,6 @@
             <a href="{{ url_for('index') }}" class="btn btn-secondary">
                 <i class="fas fa-arrow-left"></i> Voltar
             </a>
-            <form action="{{ url_for('process_pdf') }}" method="post" enctype="multipart/form-data" class="flex-grow-1 mx-3">
-                <input type="hidden" name="pdf_path" value="{{ pdf_path }}">
-                <div class="input-group">
-                    <input type="text" class="form-control" name="text" required placeholder="Digite o texto para buscar">
-                    <input type="text" class="form-control" name="replacement_text" required placeholder="Digite o texto para substituição">
-                    <div class="input-group-append">
-                        <div class="input-group-text">
-                            <input type="checkbox" name="use_ocr" id="use_ocr">
-                            <label for="use_ocr" class="mb-0 ms-2">Usar OCR</label>
-                        </div>
-                    </div>
-                    <button type="submit" class="btn btn-primary">
-                        <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
-                        Buscar e Destacar
-                    </button>
-                </div>
-            </form>
         </div>
     </div>
 </div>
