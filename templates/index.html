@@ -26,12 +26,12 @@
                     <div class="col-md-4">
                         <div class="card h-100">
                             <div class="card-body text-center">
-                                <h3 class="signature-preview" style="font-family: 'Dancing Script', cursive;">Nome</h3>
+                                <div class="signature-preview" data-style="cursive" style="height: 100px;"></div>
                                 <div class="form-check mt-2">
                                     <input class="form-check-input" type="radio" name="signature_style" 
                                            id="style1" value="cursive" checked>
                                     <label class="form-check-label" for="style1">
-                                        Manuscrita Elegante
+                                        Elegante
                                     </label>
                                 </div>
                             </div>
@@ -40,12 +40,12 @@
                     <div class="col-md-4">
                         <div class="card h-100">
                             <div class="card-body text-center">
-                                <h3 class="signature-preview" style="font-family: 'Homemade Apple', cursive;">Nome</h3>
+                                <div class="signature-preview" data-style="handwritten" style="height: 100px;"></div>
                                 <div class="form-check mt-2">
                                     <input class="form-check-input" type="radio" name="signature_style" 
                                            id="style2" value="handwritten">
                                     <label class="form-check-label" for="style2">
-                                        Manuscrita Casual
+                                        Manuscrita
                                     </label>
                                 </div>
                             </div>
@@ -54,7 +54,7 @@
                     <div class="col-md-4">
                         <div class="card h-100">
                             <div class="card-body text-center">
-                                <h3 class="signature-preview" style="font-family: 'Pacifico', cursive;">Nome</h3>
+                                <div class="signature-preview" data-style="artistic" style="height: 100px;"></div>
                                 <div class="form-check mt-2">
                                     <input class="form-check-input" type="radio" name="signature_style" 
                                            id="style3" value="artistic">
@@ -75,49 +75,36 @@
         </form>
     </div>
 </div>
-
-<div class="card mt-4">
-    <div class="card-header">
-        <h3 class="card-title mb-0">Como funciona</h3>
-    </div>
-    <div class="card-body">
-        <ol class="list-group list-group-numbered">
-            <li class="list-group-item">Faça upload do documento PDF que precisa ser assinado.</li>
-            <li class="list-group-item">Digite o nome completo do signatário.</li>
-            <li class="list-group-item">Escolha o estilo de assinatura desejado.</li>
-            <li class="list-group-item">O sistema irá encontrar automaticamente os locais para assinatura.</li>
-            <li class="list-group-item">As áreas de assinatura são identificadas por:</li>
-            <ul class="list-group">
-                <li class="list-group-item">Linhas com underscores (_____)</li>
-                <li class="list-group-item">Linhas com hífens (-----)</li>
-                <li class="list-group-item">Textos contendo a palavra "assinatura"</li>
-            </ul>
-        </ol>
-    </div>
-</div>
 {% endblock %}
 
 {% block extra_head %}
-<link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&family=Homemade+Apple&family=Pacifico&display=swap" rel="stylesheet">
 <style>
 .signature-preview {
-    margin: 10px 0;
-    color: #0d6efd;
+    border: 1px solid var(--bs-gray-400);
+    border-radius: 4px;
+    padding: 10px;
+    background-color: white;
+}
+
+.signature-preview svg {
+    max-width: 100%;
+    height: 100%;
 }
 </style>
 {% endblock %}
 
 {% block extra_js %}
+<script src="{{ url_for('static', filename='signatures/signature_styles.js') }}"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const signerNameInput = document.getElementById('signer_name');
-    const previews = document.querySelectorAll('.signature-preview');
 
+    // Initialize signature previews
+    updateSignaturePreviews();
+
+    // Update previews when name changes
     signerNameInput.addEventListener('input', function(e) {
-        const name = e.target.value || 'Nome';
-        previews.forEach(preview => {
-            preview.textContent = name;
-        });
+        updateSignaturePreviews(e.target.value);
     });
 });
 </script>

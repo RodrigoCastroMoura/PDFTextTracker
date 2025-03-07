@@ -1,5 +1,6 @@
 {pkgs}: {
   deps = [
+    pkgs.glibcLocales
     pkgs.poppler_utils
     pkgs.zlib
     pkgs.tk

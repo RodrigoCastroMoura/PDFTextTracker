@@ -3,35 +3,51 @@ import re
 import unicodedata
 import os
 import logging
+import io
+import base64
+from svglib.svglib import svg2rlg
+from reportlab.graphics import renderPM
 
 logger = logging.getLogger(__name__)
 
-# Definição dos estilos de assinatura
+# Definição dos estilos de assinatura SVG
 SIGNATURE_STYLES = {
     'cursive': {
-        'font': 'Courier',  # Fonte padrão mais cursiva
-        'size': 24,
-        'color': (0, 0, 1)  # Azul
+        'path': 'M10 50 C 20 20, 40 20, 50 50 C 60 70, 80 70, 90 50',
+        'style': 'stroke:#000066; fill:none; stroke-width:2;',
+        'viewBox': '0 0 100 100'
     },
     'handwritten': {
-        'font': 'Times-Roman',  # Fonte mais formal
-        'size': 22,
-        'color': (0, 0, 0.7)  # Azul escuro
+        'path': 'M10 50 Q 25 25, 40 50 T 70 50 Q 85 75, 100 50',
+        'style': 'stroke:#000066; fill:none; stroke-width:3;',
+        'viewBox': '0 0 110 100'
     },
     'artistic': {
-        'font': 'Helvetica',  # Fonte moderna
-        'size': 26,
-        'color': (0.2, 0, 0.8)  # Roxo azulado
+        'path': 'M10 50 S 30 20, 50 50 S 70 80, 90 50',
+        'style': 'stroke:#000066; fill:none; stroke-width:2.5;',
+        'viewBox': '0 0 100 100'
     }
 }
 
-def normalize_text(text):
-    """Normalizes text by removing accents and converting to lowercase"""
-    normalized = unicodedata.normalize('NFKD', text)
-    normalized = ''.join([c for c in normalized if not unicodedata.combining(c)])
-    normalized = normalized.lower()
-    normalized = re.sub(r'\s+', ' ', normalized).strip()
-    return normalized
+def create_signature_svg(name, style):
+    """Cria um SVG de assinatura com o nome e estilo especificados"""
+    signature_style = SIGNATURE_STYLES.get(style, SIGNATURE_STYLES['cursive'])
+
+    svg_template = f'''
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="{signature_style['viewBox']}">
+        <path d="{signature_style['path']}" style="{signature_style['style']}" />
+        <text x="50" y="80" text-anchor="middle" 
+              style="font-family: Arial; font-size: 14px; fill: #000066;">
+            {name}
+        </text>
+    </svg>
+    '''
+    return svg_template
+
+def svg_to_png(svg_content):
+    """Converte SVG para PNG"""
+    drawing = svg2rlg(io.StringIO(svg_content))
+    return renderPM.drawToString(drawing, fmt='PNG')
 
 def find_signature_lines(page):
     """
@@ -84,8 +100,8 @@ def find_signature_lines(page):
                     'rect': fitz.Rect(x0, y0, x1, y1),
                     'type': 'signature_line',
                     'text': text,
-                    'text_below': text_below,  # Adicionar o texto encontrado abaixo
-                    'has_description': bool(text_below.strip())  # Indicador se há descrição
+                    'text_below': text_below,
+                    'has_description': bool(text_below.strip())
                 }
                 signature_areas.append(signature_area)
 
@@ -110,6 +126,12 @@ def process_pdf_signatures(input_pdf_path, signer_name=None, signature_style='cu
     }
 
     try:
+        if signer_name:
+            # Criar SVG da assinatura
+            svg_content = create_signature_svg(signer_name, signature_style)
+            # Converter SVG para PNG
+            png_data = svg_to_png(svg_content)
+
         for page_num, page in enumerate(doc):
             stats["pages_processed"] += 1
 
@@ -132,19 +154,18 @@ def process_pdf_signatures(input_pdf_path, signer_name=None, signature_style='cu
                         "has_description": area['has_description']
                     })
 
-                    # Adicionar assinatura digital acima da linha
+                    # Adicionar assinatura como imagem
                     if signer_name:
-                        # Obter estilo da assinatura
-                        style = SIGNATURE_STYLES.get(signature_style, SIGNATURE_STYLES['cursive'])
+                        # Calcular dimensões e posição da assinatura
+                        signature_width = rect.width
+                        signature_height = signature_width * 0.5  # Proporção 2:1
+                        x0 = rect.x0
+                        y0 = rect.y0 - signature_height - 2  # 2 pontos acima da linha
 
-                        # Adicionar nome como assinatura (mais próximo da linha)
-                        page.insert_text(
-                            point=(rect.x0, rect.y0 - 0.5675),  # 0.2mm acima da linha
-                            text=signer_name,
-                            color=style['color'],     # Cor do estilo
-                            fontsize=style['size'],   # Tamanho da fonte do estilo
-                            fontname=style['font'],   # Fonte do estilo
-                            render_mode=0             # Modo normal
+                        # Inserir a imagem da assinatura
+                        page.insert_image(
+                            fitz.Rect(x0, y0, x0 + signature_width, y0 + signature_height),
+                            stream=png_data
                         )
 
         # Salvar em um novo arquivo se houver assinatura
@@ -158,3 +179,11 @@ def process_pdf_signatures(input_pdf_path, signer_name=None, signature_style='cu
         raise
     finally:
         doc.close()
+
+def normalize_text(text):
+    """Normalizes text by removing accents and converting to lowercase"""
+    normalized = unicodedata.normalize('NFKD', text)
+    normalized = ''.join([c for c in normalized if not unicodedata.combining(c)])
+    normalized = normalized.lower()
+    normalized = re.sub(r'\s+', ' ', normalized).strip()
+    return normalized
