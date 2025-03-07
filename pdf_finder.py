@@ -65,26 +65,28 @@ def find_signature_lines(page):
     words = page.get_text("words")
 
     for word in words:
-        x0, y0, x1, y1, text, _, _ = word
+        # PyMuPDF words format: [x0, y0, x1, y1, word, block_no, line_no]
+        if len(word) >= 5:  # Garantir que temos pelo menos as coordenadas e o texto
+            x0, y0, x1, y1, text = word[:5]
 
-        # Verificar padrões de assinatura
-        is_signature_line = (
-            # Linha de underscore
-            text.strip('_') == '' and len(text) >= 5 or
-            # Linha de hífen
-            text.strip('-') == '' and len(text) >= 5 or
-            # Palavra "assinatura"
-            'assinatura' in text.lower()
-        )
+            # Verificar padrões de assinatura
+            is_signature_line = (
+                # Linha de underscore
+                text.strip('_') == '' and len(text) >= 5 or
+                # Linha de hífen
+                text.strip('-') == '' and len(text) >= 5 or
+                # Palavra "assinatura"
+                'assinatura' in text.lower()
+            )
 
-        if is_signature_line:
-            # Criar uma área retangular para a linha de assinatura
-            signature_area = {
-                'rect': fitz.Rect(x0, y0, x1, y1),
-                'type': 'signature_line',
-                'text': text
-            }
-            signature_areas.append(signature_area)
+            if is_signature_line:
+                # Criar uma área retangular para a linha de assinatura
+                signature_area = {
+                    'rect': fitz.Rect(x0, y0, x1, y1),
+                    'type': 'signature_line',
+                    'text': text
+                }
+                signature_areas.append(signature_area)
 
     return signature_areas
 
@@ -131,9 +133,10 @@ def highlight_text_in_pdf(input_pdf_path, output_pdf_path, text_to_find, highlig
             if not instances and normalized_text in normalized_page_text:
                 words = page.get_text("words")
                 for word in words:
-                    x0, y0, x1, y1, text, _, _ = word
-                    if normalized_text in normalize_text(text):
-                        instances.append(fitz.Rect(x0, y0, x1, y1))
+                    if len(word) >= 5:  # Garantir que temos as coordenadas e o texto
+                        x0, y0, x1, y1, text = word[:5]
+                        if normalized_text in normalize_text(text):
+                            instances.append(fitz.Rect(x0, y0, x1, y1))
 
             # OCR se necessário
             if not instances and use_ocr:
