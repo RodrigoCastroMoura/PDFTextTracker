@@ -3,33 +3,14 @@
 {% block content %}
 <div class="card">
     <div class="card-header">
-        <h2 class="card-title mb-0">Busca e Destaque em PDF</h2>
+        <h2 class="card-title mb-0">Detector de Linhas de Assinatura em PDF</h2>
     </div>
     <div class="card-body">
         <form action="{{ url_for('process_pdf') }}" method="post" enctype="multipart/form-data" id="pdfForm">
             <div class="mb-3">
                 <label for="file" class="form-label">Selecionar arquivo PDF</label>
                 <input type="file" class="form-control" id="file" name="file" accept=".pdf" required>
-                <div class="form-text">Faça upload de um arquivo PDF para buscar e destacar texto.</div>
-            </div>
-
-            <div class="mb-3">
-                <label for="text" class="form-label">Texto para Buscar</label>
-                <input type="text" class="form-control" id="text" name="text" required
-                       placeholder="Digite o texto que deseja encontrar e destacar">
-            </div>
-
-            <div class="mb-3">
-                <label for="replacement_text" class="form-label">Texto para Substituição</label>
-                <input type="text" class="form-control" id="replacement_text" name="replacement_text" required
-                       placeholder="Digite o texto que será colocado acima do texto encontrado">
-            </div>
-
-            <div class="mb-3 form-check">
-                <input type="checkbox" class="form-check-input" id="use_ocr" name="use_ocr">
-                <label class="form-check-label" for="use_ocr">
-                    Usar OCR (para documentos digitalizados)
-                </label>
+                <div class="form-text">Faça upload de um arquivo PDF para encontrar possíveis linhas de assinatura.</div>
             </div>
 
             <button type="submit" class="btn btn-primary" id="submitBtn">
@@ -47,11 +28,13 @@
     <div class="card-body">
         <ol class="list-group list-group-numbered">
             <li class="list-group-item">Faça upload do seu documento PDF usando o seletor de arquivo acima.</li>
-            <li class="list-group-item">Digite o texto que você deseja encontrar no PDF.</li>
-            <li class="list-group-item">Digite o texto que será colocado acima do texto encontrado.</li>
-            <li class="list-group-item">Ative o OCR se seu PDF contiver texto digitalizado ou imagens.</li>
-            <li class="list-group-item">Clique em "Processar PDF" e aguarde o processamento.</li>
-            <li class="list-group-item">O PDF será exibido com os textos encontrados destacados e substituídos.</li>
+            <li class="list-group-item">O sistema irá procurar por possíveis linhas de assinatura no documento.</li>
+            <li class="list-group-item">As linhas de assinatura serão identificadas com base em:</li>
+            <ul class="list-group">
+                <li class="list-group-item">Linhas com underscores (_____)</li>
+                <li class="list-group-item">Linhas com hífens (-----)</li>
+                <li class="list-group-item">Textos contendo a palavra "assinatura"</li>
+            </ul>
         </ol>
     </div>
 </div>
@@ -62,9 +45,9 @@
     </div>
     <div class="card-body">
         <ul class="list-group">
-            <li class="list-group-item">O processamento OCR pode levar mais tempo para documentos grandes.</li>
-            <li class="list-group-item">Destaques com OCR podem não ser tão precisos quanto a busca direta.</li>
+            <li class="list-group-item">O sistema identifica automaticamente áreas prováveis para assinatura.</li>
             <li class="list-group-item">O aplicativo suporta PDFs normais e documentos digitalizados.</li>
+            <li class="list-group-item">As linhas de assinatura serão destacadas no documento visualizado.</li>
         </ul>
     </div>
 </div>

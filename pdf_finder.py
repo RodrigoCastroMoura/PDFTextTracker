@@ -90,124 +90,39 @@ def find_signature_lines(page):
 
     return signature_areas
 
-def highlight_text_in_pdf(input_pdf_path, output_pdf_path, text_to_find, highlight_color=(1, 1, 0), use_ocr=False, replacement_text=None):
-    """Searches and highlights text in a PDF with optional OCR support and text replacement"""
+def process_pdf_signatures(input_pdf_path):
+    """Processa o PDF e retorna informações sobre linhas de assinatura encontradas"""
     if not os.path.exists(input_pdf_path):
         raise FileNotFoundError("Input PDF file not found")
 
     doc = fitz.open(input_pdf_path)
-    normalized_text = normalize_text(text_to_find)
-
     stats = {
-        "total_occurrences": 0,
-        "pages_with_occurrences": 0,
+        "total_signature_lines": 0,
+        "pages_with_signatures": 0,
         "pages_processed": 0,
-        "ocr_used": False,
-        "signature_lines_found": 0,  # Nova estatística para linhas de assinatura
-        "locations": []
+        "signature_locations": []
     }
 
     try:
         for page_num, page in enumerate(doc):
             stats["pages_processed"] += 1
-            page_occurrences = 0
 
             # Encontrar linhas de assinatura
             signature_areas = find_signature_lines(page)
-            stats["signature_lines_found"] += len(signature_areas)
 
-            # Processar cada área de assinatura encontrada
-            for area in signature_areas:
-                # Armazenar localização
-                stats["locations"].append({
-                    "page": page_num,
-                    "rect": [area['rect'].x0, area['rect'].y0, area['rect'].x1, area['rect'].y1],
-                    "type": "signature_line"
-                })
+            if signature_areas:
+                stats["pages_with_signatures"] += 1
+                stats["total_signature_lines"] += len(signature_areas)
 
-                # Adicionar texto de substituição acima da linha de assinatura
-                if replacement_text:
-                    rect = area['rect']
-                    replacement_rect = fitz.Rect(
-                        rect.x0,               # Mesma posição horizontal
-                        rect.y0 - 1.4175,      # 0.5mm acima da linha
-                        rect.x1,               # Mesmo comprimento da linha
-                        rect.y0 + 28.35        # 1cm altura para o texto
-                    )
-                    page.insert_text(
-                        replacement_rect.tl,    # top-left point
-                        replacement_text,
-                        color=(0, 0, 1),       # Cor azul para substituição
-                        fontsize=16,           # Fonte maior
-                        fontname="COUR",       # Courier - mais parecido com manuscrito
-                        render_mode=0          # Normal mode, sem sublinhado
-                    )
+                # Armazenar localizações
+                for area in signature_areas:
+                    stats["signature_locations"].append({
+                        "page": page_num,
+                        "rect": [area['rect'].x0, area['rect'].y0, area['rect'].x1, area['rect'].y1],
+                        "type": "signature_line",
+                        "text": area['text']
+                    })
 
-            # Buscar texto normalmente
-            page_text = page.get_text()
-            normalized_page_text = normalize_text(page_text)
-            instances = page.search_for(text_to_find, quads=False)
-
-            if not instances and normalized_text in normalized_page_text:
-                words = page.get_text("words")
-                for word in words:
-                    if len(word) >= 5:  # Garantir que temos as coordenadas e o texto
-                        x0, y0, x1, y1, text = word[:5]
-                        if normalized_text in normalize_text(text):
-                            instances.append(fitz.Rect(x0, y0, x1, y1))
-
-            # OCR se necessário
-            if not instances and use_ocr:
-                stats["ocr_used"] = True
-                with tempfile.TemporaryDirectory() as temp_dir:
-                    try:
-                        pix = page.get_pixmap(matrix=fitz.Matrix(300/72, 300/72))
-                        image_path = os.path.join(temp_dir, f"page_{page_num}.png")
-                        pix.save(image_path)
-
-                        ocr_text = perform_ocr_with_api(image_path)
-                        if ocr_text and (text_to_find.lower() in ocr_text.lower() or 
-                                       normalized_text in normalize_text(ocr_text)):
-                            width, height = page.rect.width, page.rect.height
-                            rect = fitz.Rect(
-                                width * 0.1, height * 0.3,
-                                width * 0.9, height * 0.7
-                            )
-                            instances.append(rect)
-                    except Exception as e:
-                        logger.error(f"OCR processing error: {str(e)}")
-
-            # Processar instâncias encontradas
-            for inst in instances:
-                stats["locations"].append({
-                    "page": page_num,
-                    "rect": [inst.x0, inst.y0, inst.x1, inst.y1],
-                    "type": "text_match"
-                })
-
-                if replacement_text:
-                    replacement_rect = fitz.Rect(
-                        inst.x0 + 28.35,    # 1cm to the right
-                        inst.y0 - 1.4175,   # 0.5mm above the original text
-                        inst.x1 + 28.35,    # maintain same width
-                        inst.y0 + 28.35     # 1cm height for text
-                    )
-                    page.insert_text(
-                        replacement_rect.tl,  # top-left point
-                        replacement_text,
-                        color=(0, 0, 1),     # Blue color for replacement
-                        fontsize=16,         # Larger font
-                        fontname="COUR",     # Courier - mais parecido com manuscrito
-                        render_mode=0        # Normal mode, sem sublinhado
-                    )
-
-                page_occurrences += 1
-
-            stats["total_occurrences"] += page_occurrences
-            if page_occurrences > 0:
-                stats["pages_with_occurrences"] += 1
-
-        doc.save(output_pdf_path)
         return stats
 
     except Exception as e:
