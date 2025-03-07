@@ -3,51 +3,56 @@ import re
 import unicodedata
 import os
 import logging
-import io
-import base64
-from svglib.svglib import svg2rlg
-from reportlab.graphics import renderPM
+from datetime import datetime
 
 logger = logging.getLogger(__name__)
 
-# Definição dos estilos de assinatura SVG
+# Definição dos estilos de assinatura
 SIGNATURE_STYLES = {
     'cursive': {
-        'path': 'M10 50 C 20 20, 40 20, 50 50 C 60 70, 80 70, 90 50',
-        'style': 'stroke:#000066; fill:none; stroke-width:2;',
-        'viewBox': '0 0 100 100'
+        'font': 'cursive',
+        'size': 24,
+        'color': (0, 0, 1)  # Azul
     },
     'handwritten': {
-        'path': 'M10 50 Q 25 25, 40 50 T 70 50 Q 85 75, 100 50',
-        'style': 'stroke:#000066; fill:none; stroke-width:3;',
-        'viewBox': '0 0 110 100'
+        'font': 'times-roman',  # Fonte mais formal
+        'size': 22,
+        'color': (0, 0, 0.7)  # Azul escuro
     },
     'artistic': {
-        'path': 'M10 50 S 30 20, 50 50 S 70 80, 90 50',
-        'style': 'stroke:#000066; fill:none; stroke-width:2.5;',
-        'viewBox': '0 0 100 100'
+        'font': 'helv',  # Fonte moderna
+        'size': 26,
+        'color': (0.2, 0, 0.8)  # Roxo azulado
     }
 }
 
-def create_signature_svg(name, style):
-    """Cria um SVG de assinatura com o nome e estilo especificados"""
-    signature_style = SIGNATURE_STYLES.get(style, SIGNATURE_STYLES['cursive'])
+def draw_signature(page, rect, text, style='cursive'):
+    """
+    Desenha uma assinatura estilizada no PDF usando PyMuPDF
+    """
+    style_config = SIGNATURE_STYLES.get(style, SIGNATURE_STYLES['cursive'])
 
-    svg_template = f'''
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="{signature_style['viewBox']}">
-        <path d="{signature_style['path']}" style="{signature_style['style']}" />
-        <text x="50" y="80" text-anchor="middle" 
-              style="font-family: Arial; font-size: 14px; fill: #000066;">
-            {name}
-        </text>
-    </svg>
-    '''
-    return svg_template
+    # Calcular posição da assinatura (levemente acima da linha)
+    x0 = rect.x0
+    y0 = rect.y0 - 5  # 5 pontos acima da linha
 
-def svg_to_png(svg_content):
-    """Converte SVG para PNG"""
-    drawing = svg2rlg(io.StringIO(svg_content))
-    return renderPM.drawToString(drawing, fmt='PNG')
+    # Criar a assinatura
+    page.insert_text(
+        point=(x0, y0),
+        text=text,
+        fontsize=style_config['size'],
+        color=style_config['color'],
+        fontname=style_config['font']
+    )
+
+    # Adicionar uma linha decorativa abaixo do texto
+    line_y = y0 + style_config['size']/2
+    page.draw_line(
+        (x0, line_y),
+        (x0 + len(text) * style_config['size']/2, line_y),
+        color=style_config['color'],
+        width=0.5
+    )
 
 def find_signature_lines(page):
     """
@@ -126,12 +131,6 @@ def process_pdf_signatures(input_pdf_path, signer_name=None, signature_style='cu
     }
 
     try:
-        if signer_name:
-            # Criar SVG da assinatura
-            svg_content = create_signature_svg(signer_name, signature_style)
-            # Converter SVG para PNG
-            png_data = svg_to_png(svg_content)
-
         for page_num, page in enumerate(doc):
             stats["pages_processed"] += 1
 
@@ -154,19 +153,9 @@ def process_pdf_signatures(input_pdf_path, signer_name=None, signature_style='cu
                         "has_description": area['has_description']
                     })
 
-                    # Adicionar assinatura como imagem
+                    # Adicionar assinatura se fornecido
                     if signer_name:
-                        # Calcular dimensões e posição da assinatura
-                        signature_width = rect.width
-                        signature_height = signature_width * 0.5  # Proporção 2:1
-                        x0 = rect.x0
-                        y0 = rect.y0 - signature_height - 2  # 2 pontos acima da linha
-
-                        # Inserir a imagem da assinatura
-                        page.insert_image(
-                            fitz.Rect(x0, y0, x0 + signature_width, y0 + signature_height),
-                            stream=png_data
-                        )
+                        draw_signature(page, rect, signer_name, signature_style)
 
         # Salvar em um novo arquivo se houver assinatura
         if signer_name:
