@@ -21,39 +21,6 @@ def normalize_text(text):
     normalized = re.sub(r'\s+', ' ', normalized).strip()
     return normalized
 
-def perform_ocr_with_api(image_path):
-    """Performs OCR using the OCR.space API"""
-    api_key = os.environ.get('OCR_API_KEY', 'K81445401788957')  # Default to demo key
-
-    try:
-        with open(image_path, 'rb') as f:
-            img_data = f.read()
-
-        base64_image = base64.b64encode(img_data).decode('utf-8')
-
-        payload = {
-            'apikey': api_key,
-            'language': 'por',
-            'base64Image': 'data:image/png;base64,' + base64_image,
-            'scale': 'true',
-            'isTable': 'false'
-        }
-
-        response = requests.post('https://api.ocr.space/parse/image', json=payload)
-        result = response.json()
-
-        if result.get('OCRExitCode') == 1:
-            extracted_text = ' '.join([page['ParsedText'] for page in result['ParsedResults']])
-            return extracted_text
-        else:
-            error_msg = result.get('ErrorMessage', 'Unknown error')
-            logger.error(f"OCR API error: {error_msg}")
-            return ""
-
-    except Exception as e:
-        logger.error(f"OCR processing error: {str(e)}")
-        return ""
-
 def find_signature_lines(page):
     """
     Procura por possíveis locais de assinatura no PDF baseado em padrões comuns
@@ -90,7 +57,7 @@ def find_signature_lines(page):
 
     return signature_areas
 
-def process_pdf_signatures(input_pdf_path):
+def process_pdf_signatures(input_pdf_path, replacement_text=None):
     """Processa o PDF e retorna informações sobre linhas de assinatura encontradas"""
     if not os.path.exists(input_pdf_path):
         raise FileNotFoundError("Input PDF file not found")
@@ -114,14 +81,30 @@ def process_pdf_signatures(input_pdf_path):
                 stats["pages_with_signatures"] += 1
                 stats["total_signature_lines"] += len(signature_areas)
 
-                # Armazenar localizações
+                # Armazenar localizações e adicionar texto se fornecido
                 for area in signature_areas:
+                    rect = area['rect']
                     stats["signature_locations"].append({
                         "page": page_num,
-                        "rect": [area['rect'].x0, area['rect'].y0, area['rect'].x1, area['rect'].y1],
+                        "rect": [rect.x0, rect.y0, rect.x1, rect.y1],
                         "type": "signature_line",
                         "text": area['text']
                     })
+
+                    # Adicionar texto de substituição acima da linha se fornecido
+                    if replacement_text:
+                        page.insert_text(
+                            point=(rect.x0, rect.y0 - 1.4175),  # 0.5mm acima da linha
+                            text=replacement_text,
+                            color=(0, 0, 1),     # Cor azul
+                            fontsize=16,         # Tamanho da fonte
+                            fontname="COUR",     # Fonte tipo manuscrito
+                            render_mode=0        # Modo normal
+                        )
+
+        # Se houver texto de substituição, salvar as alterações
+        if replacement_text:
+            doc.save(input_pdf_path)
 
         return stats
 

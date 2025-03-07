@@ -63,6 +63,8 @@ def process_pdf():
             return redirect(url_for('index'))
 
         file = request.files['file']
+        replacement_text = request.form.get('replacement_text', '').strip()
+
         if not file or file.filename == '':
             flash('Nenhum arquivo selecionado', 'error')
             return redirect(url_for('index'))
@@ -80,11 +82,14 @@ def process_pdf():
             flash('Arquivo PDF não encontrado', 'error')
             return redirect(url_for('index'))
 
-        # Process PDF to find signature lines
-        stats = process_pdf_signatures(input_path)
+        # Process PDF to find signature lines and add replacement text if provided
+        stats = process_pdf_signatures(input_path, replacement_text if replacement_text else None)
 
         if stats["total_signature_lines"] > 0:
-            flash(f'Encontradas {stats["total_signature_lines"]} possíveis linhas para assinatura', 'success')
+            msg = f'Encontradas {stats["total_signature_lines"]} possíveis linhas para assinatura'
+            if replacement_text:
+                msg += f' e texto "{replacement_text}" adicionado acima delas'
+            flash(msg, 'success')
         else:
             flash('Nenhuma linha de assinatura encontrada no documento', 'warning')
 

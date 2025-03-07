@@ -13,6 +13,13 @@
                 <div class="form-text">Faça upload de um arquivo PDF para encontrar possíveis linhas de assinatura.</div>
             </div>
 
+            <div class="mb-3">
+                <label for="replacement_text" class="form-label">Texto para adicionar acima das linhas (opcional)</label>
+                <input type="text" class="form-control" id="replacement_text" name="replacement_text"
+                       placeholder="Digite o texto que será colocado acima das linhas de assinatura">
+                <div class="form-text">Se preenchido, este texto será adicionado acima de cada linha de assinatura encontrada.</div>
+            </div>
+
             <button type="submit" class="btn btn-primary" id="submitBtn">
                 <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
                 Processar PDF
@@ -28,6 +35,7 @@
     <div class="card-body">
         <ol class="list-group list-group-numbered">
             <li class="list-group-item">Faça upload do seu documento PDF usando o seletor de arquivo acima.</li>
+            <li class="list-group-item">Opcionalmente, digite um texto para ser adicionado acima das linhas de assinatura.</li>
             <li class="list-group-item">O sistema irá procurar por possíveis linhas de assinatura no documento.</li>
             <li class="list-group-item">As linhas de assinatura serão identificadas com base em:</li>
             <ul class="list-group">
@@ -47,7 +55,7 @@
         <ul class="list-group">
             <li class="list-group-item">O sistema identifica automaticamente áreas prováveis para assinatura.</li>
             <li class="list-group-item">O aplicativo suporta PDFs normais e documentos digitalizados.</li>
-            <li class="list-group-item">As linhas de assinatura serão destacadas no documento visualizado.</li>
+            <li class="list-group-item">Se fornecido, o texto será adicionado 0.5mm acima de cada linha de assinatura.</li>
         </ul>
     </div>
 </div>
