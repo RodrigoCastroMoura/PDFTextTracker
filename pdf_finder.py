@@ -67,7 +67,7 @@ def process_pdf_signatures(input_pdf_path, signer_name=None):
         "signature_locations": [],
         "output_path": output_path,
         "signer_name": signer_name,
-        "signed_at": datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+        "signed_at": datetime.now().strftime("%d/%m/%Y")
     }
 
     try:
@@ -103,10 +103,10 @@ def process_pdf_signatures(input_pdf_path, signer_name=None):
                             render_mode=0        # Modo normal
                         )
 
-                        # Adicionar data e hora da assinatura
+                        # Adicionar data abaixo do nome
                         page.insert_text(
                             point=(rect.x0, rect.y0 + rect.height + 2.835),  # 1mm abaixo da linha
-                            text=f"Assinado digitalmente em {stats['signed_at']}",
+                            text=stats['signed_at'],
                             color=(0, 0, 0),     # Cor preta
                             fontsize=8,          # Fonte menor
                             fontname="Helv",     # Fonte padrão
