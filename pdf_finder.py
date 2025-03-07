@@ -54,6 +54,40 @@ def perform_ocr_with_api(image_path):
         logger.error(f"OCR processing error: {str(e)}")
         return ""
 
+def find_signature_lines(page):
+    """
+    Procura por possíveis locais de assinatura no PDF baseado em padrões comuns
+    como linhas de underscore, hífen ou a palavra 'assinatura'
+    """
+    signature_areas = []
+
+    # Obter todo o texto da página com informações de posicionamento
+    words = page.get_text("words")
+
+    for word in words:
+        x0, y0, x1, y1, text, _, _ = word
+
+        # Verificar padrões de assinatura
+        is_signature_line = (
+            # Linha de underscore
+            text.strip('_') == '' and len(text) >= 5 or
+            # Linha de hífen
+            text.strip('-') == '' and len(text) >= 5 or
+            # Palavra "assinatura"
+            'assinatura' in text.lower()
+        )
+
+        if is_signature_line:
+            # Criar uma área retangular para a linha de assinatura
+            signature_area = {
+                'rect': fitz.Rect(x0, y0, x1, y1),
+                'type': 'signature_line',
+                'text': text
+            }
+            signature_areas.append(signature_area)
+
+    return signature_areas
+
 def highlight_text_in_pdf(input_pdf_path, output_pdf_path, text_to_find, highlight_color=(1, 1, 0), use_ocr=False, replacement_text=None):
     """Searches and highlights text in a PDF with optional OCR support and text replacement"""
     if not os.path.exists(input_pdf_path):
@@ -67,7 +101,8 @@ def highlight_text_in_pdf(input_pdf_path, output_pdf_path, text_to_find, highlig
         "pages_with_occurrences": 0,
         "pages_processed": 0,
         "ocr_used": False,
-        "locations": []  # Store locations of found text
+        "signature_lines_found": 0,  # Nova estatística para linhas de assinatura
+        "locations": []
     }
 
     try:
@@ -75,12 +110,24 @@ def highlight_text_in_pdf(input_pdf_path, output_pdf_path, text_to_find, highlig
             stats["pages_processed"] += 1
             page_occurrences = 0
 
-            # Try direct text search first
+            # Encontrar linhas de assinatura
+            signature_areas = find_signature_lines(page)
+            stats["signature_lines_found"] += len(signature_areas)
+
+            # Processar cada área de assinatura encontrada
+            for area in signature_areas:
+                # Armazenar localização
+                stats["locations"].append({
+                    "page": page_num,
+                    "rect": [area['rect'].x0, area['rect'].y0, area['rect'].x1, area['rect'].y1],
+                    "type": "signature_line"
+                })
+
+            # Buscar texto normalmente
             page_text = page.get_text()
             normalized_page_text = normalize_text(page_text)
             instances = page.search_for(text_to_find, quads=False)
 
-            # Try normalized text search
             if not instances and normalized_text in normalized_page_text:
                 words = page.get_text("words")
                 for word in words:
@@ -88,40 +135,41 @@ def highlight_text_in_pdf(input_pdf_path, output_pdf_path, text_to_find, highlig
                     if normalized_text in normalize_text(text):
                         instances.append(fitz.Rect(x0, y0, x1, y1))
 
-            # Try OCR if enabled and no text found
+            # OCR se necessário
             if not instances and use_ocr:
                 stats["ocr_used"] = True
-                with tempfile.NamedTemporaryFile(suffix='.png', delete=True) as temp_img:
-                    pix = page.get_pixmap(matrix=fitz.Matrix(300/72, 300/72))
-                    pix.save(temp_img.name)
+                with tempfile.TemporaryDirectory() as temp_dir:
+                    try:
+                        pix = page.get_pixmap(matrix=fitz.Matrix(300/72, 300/72))
+                        image_path = os.path.join(temp_dir, f"page_{page_num}.png")
+                        pix.save(image_path)
 
-                    ocr_text = perform_ocr_with_api(temp_img.name)
-                    if ocr_text and (text_to_find.lower() in ocr_text.lower() or 
+                        ocr_text = perform_ocr_with_api(image_path)
+                        if ocr_text and (text_to_find.lower() in ocr_text.lower() or 
                                        normalized_text in normalize_text(ocr_text)):
-                        # Create area for OCR match
-                        width, height = page.rect.width, page.rect.height
-                        rect = fitz.Rect(
-                            width * 0.1, height * 0.3,
-                            width * 0.9, height * 0.7
-                        )
-                        instances.append(rect)
+                            width, height = page.rect.width, page.rect.height
+                            rect = fitz.Rect(
+                                width * 0.1, height * 0.3,
+                                width * 0.9, height * 0.7
+                            )
+                            instances.append(rect)
+                    except Exception as e:
+                        logger.error(f"OCR processing error: {str(e)}")
 
-            # Add replacement text for each instance
+            # Processar instâncias encontradas
             for inst in instances:
-                # Store location information
                 stats["locations"].append({
                     "page": page_num,
-                    "rect": [inst.x0, inst.y0, inst.x1, inst.y1]
+                    "rect": [inst.x0, inst.y0, inst.x1, inst.y1],
+                    "type": "text_match"
                 })
 
-                # Add replacement text if provided
                 if replacement_text:
-                    # Position replacement text at same height and 1cm to the right
                     replacement_rect = fitz.Rect(
                         inst.x0 + 28.35,    # 1cm to the right
                         inst.y0 - 1.4175,   # 0.5mm above the original text
                         inst.x1 + 28.35,    # maintain same width
-                        inst.y0 + 28.35    #1cm height for text, corrected potential error
+                        inst.y0 + 28.35     # 1cm height for text
                     )
                     page.insert_text(
                         replacement_rect.tl,  # top-left point

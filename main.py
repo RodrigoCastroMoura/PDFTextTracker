@@ -3,7 +3,8 @@ import logging
 from flask import Flask, request, send_file, render_template, redirect, url_for, flash
 from werkzeug.utils import safe_join
 import tempfile
-from pdf_finder import highlight_text_in_pdf
+from pdf_finder import highlight_text_in_pdf, find_signature_lines
+import fitz  # PyMuPDF
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
@@ -29,7 +30,20 @@ def view_pdf(filename):
         flash('PDF não encontrado', 'error')
         return redirect(url_for('index'))
 
-    return render_template('view_pdf.html', pdf_path=filename)
+    # Processar o PDF para encontrar linhas de assinatura
+    doc = fitz.open(safe_join(UPLOAD_FOLDER, filename))
+    stats = {"signature_lines_found": 0}
+
+    try:
+        for page in doc:
+            signature_areas = find_signature_lines(page)
+            stats["signature_lines_found"] += len(signature_areas)
+    finally:
+        doc.close()
+
+    return render_template('view_pdf.html', 
+                         pdf_path=filename,
+                         stats=stats)
 
 @app.route('/pdf/<path:filename>')
 def view_pdf_file(filename):

@@ -10,6 +10,13 @@
             <iframe src="{{ url_for('view_pdf_file', filename=pdf_path) }}?t={{ range(1000000) | random }}" style="width: 100%; height: 100%; border: none;"></iframe>
         </div>
 
+        {% if stats and stats.signature_lines_found > 0 %}
+        <div class="alert alert-info">
+            <h5>Linhas de Assinatura Encontradas</h5>
+            <p>Foram encontradas {{ stats.signature_lines_found }} possíveis áreas para assinatura neste documento.</p>
+        </div>
+        {% endif %}
+
         <div class="d-flex justify-content-between">
             <a href="{{ url_for('index') }}" class="btn btn-secondary">
                 <i class="fas fa-arrow-left"></i> Voltar
