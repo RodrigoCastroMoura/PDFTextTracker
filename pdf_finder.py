@@ -88,8 +88,7 @@ def process_pdf_signatures(input_pdf_path, signer_name=None):
         "pages_processed": 0,
         "signature_locations": [],
         "output_path": output_path,
-        "signer_name": signer_name,
-        "signed_at": datetime.now().strftime("%d/%m/%Y")
+        "signer_name": signer_name
     }
 
     try:
@@ -117,22 +116,12 @@ def process_pdf_signatures(input_pdf_path, signer_name=None):
 
                     # Adicionar assinatura digital acima da linha
                     if signer_name:
-                        # Adicionar nome como assinatura
+                        # Adicionar nome como assinatura (mais próximo da linha)
                         page.insert_text(
-                            point=(rect.x0, rect.y0 - 1.4175),  # 0.5mm acima da linha
+                            point=(rect.x0, rect.y0 - 0.5675),  # 0.2mm acima da linha (mais próximo)
                             text=signer_name,
                             color=(0, 0, 1),     # Cor azul
                             fontsize=16,         # Tamanho da fonte
-                            fontname="Helv",     # Fonte padrão
-                            render_mode=0        # Modo normal
-                        )
-
-                        # Adicionar data abaixo do nome
-                        page.insert_text(
-                            point=(rect.x0, rect.y0 + rect.height + 2.835),  # 1mm abaixo da linha
-                            text=stats['signed_at'],
-                            color=(0, 0, 0),     # Cor preta
-                            fontsize=8,          # Fonte menor
                             fontname="Helv",     # Fonte padrão
                             render_mode=0        # Modo normal
                         )
