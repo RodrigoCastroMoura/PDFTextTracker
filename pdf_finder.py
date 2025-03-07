@@ -2,14 +2,8 @@ import fitz  # PyMuPDF
 import re
 import unicodedata
 import os
-import tempfile
-import requests
-import json
-import base64
-from PIL import Image
-import io
 import logging
-from pdf2image import convert_from_path
+from datetime import datetime
 
 logger = logging.getLogger(__name__)
 
@@ -57,13 +51,13 @@ def find_signature_lines(page):
 
     return signature_areas
 
-def process_pdf_signatures(input_pdf_path, replacement_text=None):
+def process_pdf_signatures(input_pdf_path, signer_name=None):
     """Processa o PDF e retorna informações sobre linhas de assinatura encontradas"""
     if not os.path.exists(input_pdf_path):
         raise FileNotFoundError("Input PDF file not found")
 
     # Criar nome do arquivo de saída
-    output_path = input_pdf_path.replace('.pdf', '_processado.pdf')
+    output_path = input_pdf_path.replace('.pdf', '_assinado.pdf')
 
     doc = fitz.open(input_pdf_path)
     stats = {
@@ -71,7 +65,9 @@ def process_pdf_signatures(input_pdf_path, replacement_text=None):
         "pages_with_signatures": 0,
         "pages_processed": 0,
         "signature_locations": [],
-        "output_path": output_path
+        "output_path": output_path,
+        "signer_name": signer_name,
+        "signed_at": datetime.now().strftime("%d/%m/%Y %H:%M:%S")
     }
 
     try:
@@ -85,7 +81,7 @@ def process_pdf_signatures(input_pdf_path, replacement_text=None):
                 stats["pages_with_signatures"] += 1
                 stats["total_signature_lines"] += len(signature_areas)
 
-                # Armazenar localizações e adicionar texto se fornecido
+                # Armazenar localizações e adicionar assinatura se fornecido
                 for area in signature_areas:
                     rect = area['rect']
                     stats["signature_locations"].append({
@@ -95,19 +91,30 @@ def process_pdf_signatures(input_pdf_path, replacement_text=None):
                         "text": area['text']
                     })
 
-                    # Adicionar texto de substituição acima da linha se fornecido
-                    if replacement_text:
+                    # Adicionar assinatura digital acima da linha
+                    if signer_name:
+                        # Adicionar nome como assinatura
                         page.insert_text(
                             point=(rect.x0, rect.y0 - 1.4175),  # 0.5mm acima da linha
-                            text=replacement_text,
+                            text=signer_name,
                             color=(0, 0, 1),     # Cor azul
                             fontsize=16,         # Tamanho da fonte
-                            fontname="COUR",     # Fonte tipo manuscrito
+                            fontname="Helv",     # Fonte padrão
                             render_mode=0        # Modo normal
                         )
 
-        # Salvar em um novo arquivo se houver texto de substituição
-        if replacement_text:
+                        # Adicionar data e hora da assinatura
+                        page.insert_text(
+                            point=(rect.x0, rect.y0 + rect.height + 2.835),  # 1mm abaixo da linha
+                            text=f"Assinado digitalmente em {stats['signed_at']}",
+                            color=(0, 0, 0),     # Cor preta
+                            fontsize=8,          # Fonte menor
+                            fontname="Helv",     # Fonte padrão
+                            render_mode=0        # Modo normal
+                        )
+
+        # Salvar em um novo arquivo se houver assinatura
+        if signer_name:
             doc.save(output_path)
 
         return stats

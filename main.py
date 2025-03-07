@@ -63,7 +63,7 @@ def process_pdf():
             return redirect(url_for('index'))
 
         file = request.files['file']
-        replacement_text = request.form.get('replacement_text', '').strip()
+        signer_name = request.form.get('signer_name', '').strip()
 
         if not file or file.filename == '':
             flash('Nenhum arquivo selecionado', 'error')
@@ -71,6 +71,10 @@ def process_pdf():
 
         if not allowed_file(file.filename):
             flash('Tipo de arquivo inválido. Por favor, envie um arquivo PDF.', 'error')
+            return redirect(url_for('index'))
+
+        if not signer_name:
+            flash('Por favor, forneça o nome do signatário.', 'error')
             return redirect(url_for('index'))
 
         # Save uploaded file
@@ -82,13 +86,11 @@ def process_pdf():
             flash('Arquivo PDF não encontrado', 'error')
             return redirect(url_for('index'))
 
-        # Process PDF to find signature lines and add replacement text if provided
-        stats = process_pdf_signatures(input_path, replacement_text if replacement_text else None)
+        # Process PDF to find signature lines and add signer's name
+        stats = process_pdf_signatures(input_path, signer_name)
 
         if stats["total_signature_lines"] > 0:
-            msg = f'Encontradas {stats["total_signature_lines"]} possíveis linhas para assinatura'
-            if replacement_text:
-                msg += f' e texto "{replacement_text}" adicionado acima delas'
+            msg = f'Documento assinado por {signer_name} em {stats["total_signature_lines"]} locais'
             flash(msg, 'success')
         else:
             flash('Nenhuma linha de assinatura encontrada no documento', 'warning')

@@ -3,26 +3,26 @@
 {% block content %}
 <div class="card">
     <div class="card-header">
-        <h2 class="card-title mb-0">Detector de Linhas de Assinatura em PDF</h2>
+        <h2 class="card-title mb-0">Sistema de Assinatura Digital em PDF</h2>
     </div>
     <div class="card-body">
         <form action="{{ url_for('process_pdf') }}" method="post" enctype="multipart/form-data" id="pdfForm">
             <div class="mb-3">
                 <label for="file" class="form-label">Selecionar arquivo PDF</label>
                 <input type="file" class="form-control" id="file" name="file" accept=".pdf" required>
-                <div class="form-text">Faça upload de um arquivo PDF para encontrar possíveis linhas de assinatura.</div>
+                <div class="form-text">Faça upload de um arquivo PDF para assinar digitalmente.</div>
             </div>
 
             <div class="mb-3">
-                <label for="replacement_text" class="form-label">Texto para adicionar acima das linhas (opcional)</label>
-                <input type="text" class="form-control" id="replacement_text" name="replacement_text"
-                       placeholder="Digite o texto que será colocado acima das linhas de assinatura">
-                <div class="form-text">Se preenchido, este texto será adicionado acima de cada linha de assinatura encontrada.</div>
+                <label for="signer_name" class="form-label">Nome do Signatário</label>
+                <input type="text" class="form-control" id="signer_name" name="signer_name"
+                       placeholder="Digite o nome completo de quem vai assinar" required>
+                <div class="form-text">Este nome será usado como assinatura digital no documento.</div>
             </div>
 
             <button type="submit" class="btn btn-primary" id="submitBtn">
                 <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
-                Processar PDF
+                Assinar PDF
             </button>
         </form>
     </div>
@@ -30,14 +30,14 @@
 
 <div class="card mt-4">
     <div class="card-header">
-        <h3 class="card-title mb-0">Instruções</h3>
+        <h3 class="card-title mb-0">Como funciona</h3>
     </div>
     <div class="card-body">
         <ol class="list-group list-group-numbered">
-            <li class="list-group-item">Faça upload do seu documento PDF usando o seletor de arquivo acima.</li>
-            <li class="list-group-item">Opcionalmente, digite um texto para ser adicionado acima das linhas de assinatura.</li>
-            <li class="list-group-item">O sistema irá procurar por possíveis linhas de assinatura no documento.</li>
-            <li class="list-group-item">As linhas de assinatura serão identificadas com base em:</li>
+            <li class="list-group-item">Faça upload do documento PDF que precisa ser assinado.</li>
+            <li class="list-group-item">Digite o nome completo do signatário.</li>
+            <li class="list-group-item">O sistema irá encontrar automaticamente os locais para assinatura.</li>
+            <li class="list-group-item">As áreas de assinatura são identificadas por:</li>
             <ul class="list-group">
                 <li class="list-group-item">Linhas com underscores (_____)</li>
                 <li class="list-group-item">Linhas com hífens (-----)</li>
@@ -49,13 +49,13 @@
 
 <div class="card mt-4">
     <div class="card-header bg-info text-white">
-        <h3 class="card-title mb-0">Observações Importantes</h3>
+        <h3 class="card-title mb-0">Informações Importantes</h3>
     </div>
     <div class="card-body">
         <ul class="list-group">
-            <li class="list-group-item">O sistema identifica automaticamente áreas prováveis para assinatura.</li>
-            <li class="list-group-item">O aplicativo suporta PDFs normais e documentos digitalizados.</li>
-            <li class="list-group-item">Se fornecido, o texto será adicionado 0.5mm acima de cada linha de assinatura.</li>
+            <li class="list-group-item">O sistema identifica automaticamente áreas para assinatura no documento.</li>
+            <li class="list-group-item">A assinatura digital incluirá o nome do signatário e a data/hora da assinatura.</li>
+            <li class="list-group-item">Um novo arquivo PDF será gerado com todas as assinaturas aplicadas.</li>
         </ul>
     </div>
 </div>
