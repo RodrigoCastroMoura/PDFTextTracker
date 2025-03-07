@@ -3,26 +3,31 @@ import re
 import unicodedata
 import os
 import logging
-from datetime import datetime
 
 logger = logging.getLogger(__name__)
 
-# Definição dos estilos de assinatura
+# Definição dos estilos de assinatura usando fontes base do PyMuPDF
 SIGNATURE_STYLES = {
     'cursive': {
-        'font': 'cursive',
+        'font': 'helv',  # Helvetica
         'size': 24,
-        'color': (0, 0, 1)  # Azul
+        'color': (0, 0, 0.8),  # Azul escuro
+        'italic': True,
+        'line_style': {'width': 0.8, 'color': (0, 0, 0.8)}
     },
     'handwritten': {
-        'font': 'times-roman',  # Fonte mais formal
-        'size': 22,
-        'color': (0, 0, 0.7)  # Azul escuro
+        'font': 'tiro',  # Times Roman
+        'size': 26,
+        'color': (0.2, 0.2, 0.2),  # Cinza escuro
+        'italic': False,
+        'line_style': {'width': 1.2, 'color': (0.2, 0.2, 0.2)}
     },
     'artistic': {
-        'font': 'helv',  # Fonte moderna
-        'size': 26,
-        'color': (0.2, 0, 0.8)  # Roxo azulado
+        'font': 'cour',  # Courier
+        'size': 28,
+        'color': (0.5, 0, 0.5),  # Roxo
+        'italic': True,
+        'line_style': {'width': 1.5, 'color': (0.5, 0, 0.5)}
     }
 }
 
@@ -32,32 +37,49 @@ def draw_signature(page, rect, text, style='cursive'):
     """
     style_config = SIGNATURE_STYLES.get(style, SIGNATURE_STYLES['cursive'])
 
-    # Calcular posição da assinatura (levemente acima da linha)
+    # Calcular posição e dimensões
     x0 = rect.x0
-    y0 = rect.y0 - 5  # 5 pontos acima da linha
+    y0 = rect.y0 - style_config['size']/2  # Posição acima da linha
+    width = rect.width
 
-    # Criar a assinatura
-    page.insert_text(
+    # Adicionar o texto da assinatura
+    text_length = page.insert_text(
         point=(x0, y0),
         text=text,
         fontsize=style_config['size'],
         color=style_config['color'],
-        fontname=style_config['font']
+        fontname=style_config['font'],
+        italic=style_config['italic']
     )
 
-    # Adicionar uma linha decorativa abaixo do texto
-    line_y = y0 + style_config['size']/2
+    # Adicionar linha decorativa
+    line_y = y0 + style_config['size']/1.5
     page.draw_line(
         (x0, line_y),
-        (x0 + len(text) * style_config['size']/2, line_y),
-        color=style_config['color'],
-        width=0.5
+        (x0 + width, line_y),
+        color=style_config['line_style']['color'],
+        width=style_config['line_style']['width']
     )
+
+    # Adicionar efeito de ondulação dependendo do estilo
+    if style == 'artistic':
+        # Linha ondulada para estilo artístico
+        wave_y = line_y + 2
+        for i in range(int(width/10)):
+            x_start = x0 + i * 10
+            page.draw_bezier(
+                (x_start, wave_y),
+                (x_start + 2.5, wave_y - 2),
+                (x_start + 7.5, wave_y + 2),
+                (x_start + 10, wave_y),
+                color=style_config['line_style']['color'],
+                width=0.5
+            )
 
 def find_signature_lines(page):
     """
     Procura por possíveis locais de assinatura no PDF baseado em padrões comuns
-    como linhas de underscore, hífen ou a palavra 'assinatura'
+    e texto abaixo das linhas
     """
     signature_areas = []
 
