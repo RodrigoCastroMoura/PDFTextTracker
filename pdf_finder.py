@@ -25,10 +25,21 @@ def find_signature_lines(page):
     # Obter todo o texto da página com informações de posicionamento
     words = page.get_text("words")
 
+    # Organizar palavras por posição vertical (y)
+    words_by_y = {}
     for word in words:
-        # PyMuPDF words format: [x0, y0, x1, y1, word, block_no, line_no]
         if len(word) >= 5:  # Garantir que temos pelo menos as coordenadas e o texto
             x0, y0, x1, y1, text = word[:5]
+            if y0 not in words_by_y:
+                words_by_y[y0] = []
+            words_by_y[y0].append((x0, y0, x1, y1, text))
+
+    # Ordenar as coordenadas y
+    y_positions = sorted(words_by_y.keys())
+
+    for i, y_pos in enumerate(y_positions):
+        for word in words_by_y[y_pos]:
+            x0, y0, x1, y1, text = word
 
             # Verificar padrões de assinatura
             is_signature_line = (
@@ -41,11 +52,22 @@ def find_signature_lines(page):
             )
 
             if is_signature_line:
+                # Procurar texto abaixo da linha
+                text_below = ""
+                if i + 1 < len(y_positions):
+                    next_y = y_positions[i + 1]
+                    # Verificar se a próxima linha está próxima (dentro de 20 pontos)
+                    if next_y - y1 < 20:
+                        # Concatenar todo o texto da linha abaixo
+                        text_below = " ".join(word[4] for word in words_by_y[next_y])
+
                 # Criar uma área retangular para a linha de assinatura
                 signature_area = {
                     'rect': fitz.Rect(x0, y0, x1, y1),
                     'type': 'signature_line',
-                    'text': text
+                    'text': text,
+                    'text_below': text_below,  # Adicionar o texto encontrado abaixo
+                    'has_description': bool(text_below.strip())  # Indicador se há descrição
                 }
                 signature_areas.append(signature_area)
 
@@ -88,7 +110,9 @@ def process_pdf_signatures(input_pdf_path, signer_name=None):
                         "page": page_num,
                         "rect": [rect.x0, rect.y0, rect.x1, rect.y1],
                         "type": "signature_line",
-                        "text": area['text']
+                        "text": area['text'],
+                        "text_below": area['text_below'],
+                        "has_description": area['has_description']
                     })
 
                     # Adicionar assinatura digital acima da linha

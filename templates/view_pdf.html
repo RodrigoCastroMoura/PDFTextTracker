@@ -20,8 +20,8 @@
             {% for location in stats.signature_locations %}
                 <li class="list-group-item">
                     Página {{ location.page + 1 }}: 
-                    {% if location.text %}
-                        "{{ location.text }}"
+                    {% if location.text_below %}
+                        Linha para assinatura acima de "{{ location.text_below }}"
                     {% else %}
                         Linha de assinatura
                     {% endif %}
