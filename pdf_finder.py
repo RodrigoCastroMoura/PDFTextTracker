@@ -125,6 +125,24 @@ def highlight_text_in_pdf(input_pdf_path, output_pdf_path, text_to_find, highlig
                     "type": "signature_line"
                 })
 
+                # Adicionar texto de substituição acima da linha de assinatura
+                if replacement_text:
+                    rect = area['rect']
+                    replacement_rect = fitz.Rect(
+                        rect.x0,               # Mesma posição horizontal
+                        rect.y0 - 1.4175,      # 0.5mm acima da linha
+                        rect.x1,               # Mesmo comprimento da linha
+                        rect.y0 + 28.35        # 1cm altura para o texto
+                    )
+                    page.insert_text(
+                        replacement_rect.tl,    # top-left point
+                        replacement_text,
+                        color=(0, 0, 1),       # Cor azul para substituição
+                        fontsize=16,           # Fonte maior
+                        fontname="COUR",       # Courier - mais parecido com manuscrito
+                        render_mode=0          # Normal mode, sem sublinhado
+                    )
+
             # Buscar texto normalmente
             page_text = page.get_text()
             normalized_page_text = normalize_text(page_text)
