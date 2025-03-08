@@ -23,17 +23,13 @@ def create_signature_svg(text):
 
     # Criar uma string SVG que simula uma assinatura manuscrita
     svg_template = f'''<?xml version="1.0" encoding="UTF-8" standalone="no"?>
-    <svg xmlns="http://www.w3.org/2000/svg" width="{width+2}" height="{height}">
+    <svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}">
         <text x="{width/2}" y="{height/2}"
               text-anchor="middle"
               fill="{stroke_color}"
               font-family="Dancing Script, cursive"
               font-size="48px"
-              transform="skewX(-10)">
-            {text}
-        </text>
-    </svg>
-    '''
+              transform="skewX(-10)"> {text} </text></svg>'''
     return svg_template
 
 
