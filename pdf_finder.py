@@ -6,82 +6,71 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-# Definição dos estilos de assinatura usando fontes base do PyMuPDF
-SIGNATURE_STYLES = {
-    'cursive': {
-        'font': 'helv',  # Helvetica
-        'size': 24,
-        'color': (0, 0, 0.8),  # Azul escuro
-        'line_style': {'width': 0.8, 'color': (0, 0, 0.8)}
-    },
-    'handwritten': {
-        'font': 'tiro',  # Times Roman
-        'size': 26,
-        'color': (0.2, 0.2, 0.2),  # Cinza escuro
-        'line_style': {'width': 1.2, 'color': (0.2, 0.2, 0.2)}
-    },
-    'artistic': {
-        'font': 'cour',  # Courier
-        'size': 28,
-        'color': (0.5, 0, 0.5),  # Roxo
-        'line_style': {'width': 1.5, 'color': (0.5, 0, 0.5)}
-    }
-}
-
 def draw_signature(page, rect, text, style='cursive'):
     """
-    Desenha uma assinatura estilizada no PDF usando PyMuPDF
+    Desenha uma assinatura estilizada no PDF usando curvas Bezier para simular escrita manual
     """
-    style_config = SIGNATURE_STYLES.get(style, SIGNATURE_STYLES['cursive'])
+    # Cor padrão DocuSign-like
+    signature_color = (0.13, 0.36, 0.81)  # Azul DocuSign
 
-    # Calcular posição e dimensões
+    # Calcular posição
     x0 = rect.x0
-    y0 = rect.y0 - style_config['size']/2  # Posição acima da linha
+    y0 = rect.y0 - 12  # Ajustado para ficar mais próximo da linha
     width = rect.width
+    height = 20  # Altura aproximada da assinatura
 
-    # Adicionar o texto da assinatura
+    # Desenhar o nome usando uma curva Bezier para simular escrita cursiva
+    control_points = []
+    x_step = width / (len(text) + 1)
+    baseline = y0 + height * 0.6
+
+    # Criar pontos de controle para a curva principal
+    for i, char in enumerate(text):
+        x = x0 + i * x_step
+        # Variar a altura para criar um efeito mais natural
+        y_offset = height * 0.3 * (-1 if i % 2 == 0 else 1)
+        control_points.append((x, baseline + y_offset))
+
+    # Desenhar a curva principal
+    for i in range(len(control_points) - 1):
+        x1, y1 = control_points[i]
+        x2, y2 = control_points[i + 1]
+        cp1 = (x1 + x_step/3, y1)
+        cp2 = (x2 - x_step/3, y2)
+        page.draw_bezier((x1, y1), cp1, cp2, (x2, y2), color=signature_color, width=1.5)
+
+    # Adicionar o texto em uma fonte base mais fina
     page.insert_text(
         point=(x0, y0),
         text=text,
-        fontsize=style_config['size'],
-        color=style_config['color'],
-        fontname=style_config['font']
+        fontsize=16,
+        color=signature_color,
+        fontname="Helv",
     )
 
-    # Adicionar linha decorativa
-    line_y = y0 + style_config['size']/1.5
+    # Adicionar linha decorativa suave abaixo da assinatura
+    line_y = baseline + height * 0.3
+    # Linha principal
     page.draw_line(
         (x0, line_y),
         (x0 + width, line_y),
-        color=style_config['line_style']['color'],
-        width=style_config['line_style']['width']
+        color=signature_color,
+        width=0.7
     )
 
-    # Adicionar efeitos decorativos baseados no estilo
-    if style == 'artistic':
-        # Linha ondulada decorativa
-        wave_y = line_y + 2
-        for i in range(int(width/10)):
-            x_start = x0 + i * 10
-            page.draw_bezier(
-                (x_start, wave_y),
-                (x_start + 2.5, wave_y - 2),
-                (x_start + 7.5, wave_y + 2),
-                (x_start + 10, wave_y),
-                color=style_config['line_style']['color'],
-                width=0.5
-            )
-    elif style == 'handwritten':
-        # Pequenos traços decorativos
-        dash_y = line_y + 1
-        for i in range(int(width/20)):
-            x_start = x0 + i * 20
-            page.draw_line(
-                (x_start, dash_y),
-                (x_start + 10, dash_y),
-                color=style_config['line_style']['color'],
-                width=0.3
-            )
+    # Adicionar pequenas ondulações decorativas na linha
+    wave_height = 2
+    wave_width = width / 10
+    for i in range(10):
+        x_start = x0 + i * wave_width
+        page.draw_bezier(
+            (x_start, line_y),
+            (x_start + wave_width/3, line_y + wave_height),
+            (x_start + 2*wave_width/3, line_y - wave_height),
+            (x_start + wave_width, line_y),
+            color=signature_color,
+            width=0.3
+        )
 
 def find_signature_lines(page):
     """
