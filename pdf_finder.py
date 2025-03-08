@@ -12,21 +12,18 @@ SIGNATURE_STYLES = {
         'font': 'helv',  # Helvetica
         'size': 24,
         'color': (0, 0, 0.8),  # Azul escuro
-        'italic': True,
         'line_style': {'width': 0.8, 'color': (0, 0, 0.8)}
     },
     'handwritten': {
         'font': 'tiro',  # Times Roman
         'size': 26,
         'color': (0.2, 0.2, 0.2),  # Cinza escuro
-        'italic': False,
         'line_style': {'width': 1.2, 'color': (0.2, 0.2, 0.2)}
     },
     'artistic': {
         'font': 'cour',  # Courier
         'size': 28,
         'color': (0.5, 0, 0.5),  # Roxo
-        'italic': True,
         'line_style': {'width': 1.5, 'color': (0.5, 0, 0.5)}
     }
 }
@@ -43,13 +40,12 @@ def draw_signature(page, rect, text, style='cursive'):
     width = rect.width
 
     # Adicionar o texto da assinatura
-    text_length = page.insert_text(
+    page.insert_text(
         point=(x0, y0),
         text=text,
         fontsize=style_config['size'],
         color=style_config['color'],
-        fontname=style_config['font'],
-        italic=style_config['italic']
+        fontname=style_config['font']
     )
 
     # Adicionar linha decorativa
@@ -61,9 +57,9 @@ def draw_signature(page, rect, text, style='cursive'):
         width=style_config['line_style']['width']
     )
 
-    # Adicionar efeito de ondulação dependendo do estilo
+    # Adicionar efeitos decorativos baseados no estilo
     if style == 'artistic':
-        # Linha ondulada para estilo artístico
+        # Linha ondulada decorativa
         wave_y = line_y + 2
         for i in range(int(width/10)):
             x_start = x0 + i * 10
@@ -74,6 +70,17 @@ def draw_signature(page, rect, text, style='cursive'):
                 (x_start + 10, wave_y),
                 color=style_config['line_style']['color'],
                 width=0.5
+            )
+    elif style == 'handwritten':
+        # Pequenos traços decorativos
+        dash_y = line_y + 1
+        for i in range(int(width/20)):
+            x_start = x0 + i * 20
+            page.draw_line(
+                (x_start, dash_y),
+                (x_start + 10, dash_y),
+                color=style_config['line_style']['color'],
+                width=0.3
             )
 
 def find_signature_lines(page):
