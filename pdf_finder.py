@@ -13,9 +13,22 @@ def calculate_font_size(rect_width, text_length):
     """
     Calcula o tamanho ideal da fonte baseado na largura da linha e comprimento do texto
     """
-    # Quanto maior o texto, menor o tamanho da fonte para caber na linha
-    base_size = min(rect_width / (text_length * 0.7), rect_width / 10)
-    return max(min(base_size, 72), 24)  # Limita entre 24 e 72 pontos
+    # Ajustes para documentos médicos e outros tipos de documentos formais
+    min_font_size = 28  # Tamanho mínimo legível
+    max_font_size = 96  # Tamanho máximo para não ficar desproporcional
+
+    # Cálculo base: largura disponível dividida por caracteres, com fator de ajuste
+    ideal_width_per_char = rect_width / (text_length * 1.2)  # 1.2 é um fator de espaçamento
+    base_size = ideal_width_per_char * 2.5  # Multiplicador para ajuste fino
+
+    # Ajuste baseado na largura total disponível
+    if rect_width < 200:  # Espaço pequeno
+        max_font_size = min(max_font_size, rect_width / 3)
+    elif rect_width > 500:  # Espaço grande
+        min_font_size = max(min_font_size, rect_width / 20)
+
+    # Retorna o tamanho da fonte dentro dos limites estabelecidos
+    return max(min(base_size, max_font_size), min_font_size)
 
 def create_signature_svg(text, rect_width):
     """
@@ -112,19 +125,31 @@ def find_signature_lines(page):
     # Ordenar as coordenadas y
     y_positions = sorted(words_by_y.keys())
 
+    # Padrões específicos para documentos médicos
+    medical_patterns = [
+        r'crm',
+        r'médico',
+        r'doutor',
+        r'dr\.',
+        r'dra\.',
+        r'assinatura\s+do\s+médico'
+    ]
+
     for i, y_pos in enumerate(y_positions):
         for word in words_by_y[y_pos]:
             x0, y0, x1, y1, text = word
 
             # Verificar padrões de assinatura
-            is_signature_line = (
+            is_signature_line = any([
                 # Linha de underscore
-                text.strip('_') == '' and len(text) >= 5 or
+                text.strip('_') == '' and len(text) >= 5,
                 # Linha de hífen
-                text.strip('-') == '' and len(text) >= 5 or
+                text.strip('-') == '' and len(text) >= 5,
                 # Palavra "assinatura"
-                'assinatura' in text.lower()
-            )
+                'assinatura' in text.lower(),
+                # Padrões médicos
+                any(re.search(pattern, text.lower()) for pattern in medical_patterns)
+            ])
 
             if is_signature_line:
                 # Procurar texto abaixo da linha
@@ -136,9 +161,14 @@ def find_signature_lines(page):
                         # Concatenar todo o texto da linha abaixo
                         text_below = " ".join(word[4] for word in words_by_y[next_y])
 
+                # Ajustar a largura da área de assinatura baseado no contexto
+                signature_width = x1 - x0
+                if text_below and any(pattern in text_below.lower() for pattern in medical_patterns):
+                    signature_width = max(signature_width, 200)  # Garantir espaço mínimo para assinaturas médicas
+
                 # Criar área retangular para a linha de assinatura
                 signature_area = {
-                    'rect': fitz.Rect(x0, y0, x1, y1),
+                    'rect': fitz.Rect(x0, y0, x0 + signature_width, y1),
                     'type': 'signature_line',
                     'text': text,
                     'text_below': text_below,
