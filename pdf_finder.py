@@ -9,7 +9,6 @@ from cairosvg import svg2png
 
 logger = logging.getLogger(__name__)
 
-
 def create_signature_svg(text, style='cursive'):
     """
     Cria um SVG realístico de uma assinatura manuscrita similar ao DocuSign
@@ -18,30 +17,35 @@ def create_signature_svg(text, style='cursive'):
     styles = {
         'cursive': {
             'font': 'Dancing Script',
+            'weight': '700',
             'size': '48px',
             'color': '#0B5FE3',
             'skew': '-10'
         },
         'elegant': {
             'font': 'Alex Brush',
+            'weight': '400',
             'size': '52px',
             'color': '#0B5FE3',
             'skew': '-8'
         },
         'handwritten': {
             'font': 'Homemade Apple',
+            'weight': '400',
             'size': '42px',
             'color': '#0B5FE3',
             'skew': '-5'
         },
         'artistic': {
             'font': 'Pacifico',
+            'weight': '400',
             'size': '44px',
             'color': '#0B5FE3',
             'skew': '-8'
         },
         'formal': {
             'font': 'Mr De Haviland',
+            'weight': '400',
             'size': '50px',
             'color': '#0B5FE3',
             'skew': '-12'
@@ -56,19 +60,23 @@ def create_signature_svg(text, style='cursive'):
 
     # Criar uma string SVG que simula uma assinatura manuscrita
     svg_template = f'''<?xml version="1.0" encoding="UTF-8" standalone="no"?>
-    <svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}">
-        <style>
-            @import url('https://fonts.googleapis.com/css2?family={style_config["font"].replace(" ", "+")}');
-        </style>
+    <svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" viewBox="0 0 {width} {height}">
+        <defs>
+            <style type="text/css">
+                @import url('https://fonts.googleapis.com/css2?family={style_config["font"].replace(" ", "+")}:wght@{style_config["weight"]}');
+            </style>
+        </defs>
         <text x="{width/2}" y="{height/2}"
               text-anchor="middle"
               fill="{style_config['color']}"
-              font-family="{style_config['font']}, cursive"
-              font-size="{style_config['size']}"
-              transform="skewX({style_config['skew']})"> {text} </text>
+              style="font-family: '{style_config["font"]}', cursive; 
+                     font-weight: {style_config["weight"]};
+                     font-size: {style_config["size"]};
+                     transform: skewX({style_config["skew"]}deg);">
+            {text}
+        </text>
     </svg>'''
     return svg_template
-
 
 def draw_signature(page, rect, text, style='cursive'):
     """
@@ -77,18 +85,26 @@ def draw_signature(page, rect, text, style='cursive'):
     try:
         # Gerar SVG da assinatura com o estilo selecionado
         svg_content = create_signature_svg(text, style)
+        logger.debug(f"Generated SVG content: {svg_content[:200]}...")  # Log first 200 chars of SVG
 
-        # Converter SVG para PNG
-        png_data = svg2png(bytestring=svg_content.encode('utf-8'),
-                           output_width=int(rect.width),
-                           background_color='transparent')
+        # Converter SVG para PNG com fundo transparente
+        png_data = svg2png(
+            bytestring=svg_content.encode('utf-8'),
+            output_width=int(rect.width * 2),  # Double resolution for better quality
+            background_color='transparent',
+            dpi=300
+        )
 
         # Criar um objeto de imagem do PyMuPDF
         img = fitz.Pixmap(png_data)
 
+        if img.alpha:  # Se a imagem tem canal alpha (transparência)
+            # Converter para RGB se necessário
+            pix = fitz.Pixmap(fitz.csRGB, img)
+            img = pix
+
         # Calcular dimensões e posição
-        scale_factor = min(rect.width / img.width,
-                           1.5)  # Reduzir altura para ficar mais proporcional
+        scale_factor = min(rect.width / img.width, 1.5)  # Reduzir altura para ficar mais proporcional
         signature_width = rect.width - 1
         signature_height = img.height * scale_factor
 
@@ -97,19 +113,23 @@ def draw_signature(page, rect, text, style='cursive'):
         y0 = rect.y0 - signature_height * 0.2  # Ajuste fino do espaçamento
 
         # Inserir a imagem no PDF
-        page.insert_image(fitz.Rect(x0, y0, x0 + signature_width,
-                                    y0 + signature_height),
-                          pixmap=img)
+        page.insert_image(
+            fitz.Rect(x0, y0, x0 + signature_width, y0 + signature_height),
+            pixmap=img
+        )
+
+        logger.info(f"Successfully added signature with style {style}")
 
     except Exception as e:
         logger.error(f"Erro ao criar assinatura: {str(e)}")
         # Fallback para texto simples em caso de erro
-        page.insert_text(point=(rect.x0, rect.y0 - 10),
-                         text=text,
-                         color=(0, 0, 0.8),
-                         fontsize=12,
-                         fontname="Helv")
-
+        page.insert_text(
+            point=(rect.x0, rect.y0 - 10),
+            text=text,
+            color=(0, 0, 0.8),
+            fontsize=12,
+            fontname="Helv"
+        )
 
 def find_signature_lines(page):
     """
