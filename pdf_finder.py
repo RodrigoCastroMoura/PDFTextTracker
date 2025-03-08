@@ -18,35 +18,35 @@ def create_signature_svg(text, style='cursive'):
         'cursive': {
             'font': 'Dancing Script',
             'weight': '700',
-            'size': '48px',
+            'size': '48',
             'color': '#0B5FE3',
             'skew': '-10'
         },
         'elegant': {
             'font': 'Alex Brush',
             'weight': '400',
-            'size': '52px',
+            'size': '52',
             'color': '#0B5FE3',
             'skew': '-8'
         },
         'handwritten': {
             'font': 'Homemade Apple',
             'weight': '400',
-            'size': '42px',
+            'size': '42',
             'color': '#0B5FE3',
             'skew': '-5'
         },
         'artistic': {
             'font': 'Pacifico',
             'weight': '400',
-            'size': '44px',
+            'size': '44',
             'color': '#0B5FE3',
             'skew': '-8'
         },
         'formal': {
             'font': 'Mr De Haviland',
             'weight': '400',
-            'size': '50px',
+            'size': '50',
             'color': '#0B5FE3',
             'skew': '-12'
         }
@@ -60,22 +60,26 @@ def create_signature_svg(text, style='cursive'):
 
     # Criar uma string SVG que simula uma assinatura manuscrita
     svg_template = f'''<?xml version="1.0" encoding="UTF-8" standalone="no"?>
-    <svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" viewBox="0 0 {width} {height}">
-        <defs>
-            <style type="text/css">
-                @import url('https://fonts.googleapis.com/css2?family={style_config["font"].replace(" ", "+")}:wght@{style_config["weight"]}');
-            </style>
-        </defs>
-        <text x="{width/2}" y="{height/2}"
-              text-anchor="middle"
-              fill="{style_config['color']}"
-              style="font-family: '{style_config["font"]}', cursive; 
-                     font-weight: {style_config["weight"]};
-                     font-size: {style_config["size"]};
-                     transform: skewX({style_config["skew"]}deg);">
-            {text}
-        </text>
-    </svg>'''
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" viewBox="0 0 {width} {height}">
+    <defs>
+        <style type="text/css">
+            @import url('https://fonts.googleapis.com/css2?family={style_config["font"].replace(" ", "+")}:wght@{style_config["weight"]}&display=swap');
+        </style>
+    </defs>
+    <text x="{width/2}" y="{height/2}"
+          text-anchor="middle"
+          dominant-baseline="middle"
+          fill="{style_config['color']}"
+          style="font-family: '{style_config["font"]}', cursive; 
+                 font-size: {style_config["size"]}px;
+                 font-weight: {style_config["weight"]};
+                 transform: skewX({style_config["skew"]}deg);">
+        {text}
+    </text>
+</svg>'''
+
+    logger.debug(f"Generated SVG template with style {style}")
     return svg_template
 
 def draw_signature(page, rect, text, style='cursive'):
@@ -85,15 +89,18 @@ def draw_signature(page, rect, text, style='cursive'):
     try:
         # Gerar SVG da assinatura com o estilo selecionado
         svg_content = create_signature_svg(text, style)
-        logger.debug(f"Generated SVG content: {svg_content[:200]}...")  # Log first 200 chars of SVG
+        logger.debug(f"Generated SVG content length: {len(svg_content)}")
 
-        # Converter SVG para PNG com fundo transparente
+        # Converter SVG para PNG com alta qualidade
         png_data = svg2png(
             bytestring=svg_content.encode('utf-8'),
-            output_width=int(rect.width * 2),  # Double resolution for better quality
+            output_width=int(rect.width * 3),  # Triple resolution for better quality
+            output_height=int(rect.width * 0.5),  # Maintain aspect ratio
+            scale=2.0,  # Additional scaling for better quality
             background_color='transparent',
             dpi=300
         )
+        logger.debug(f"Converted SVG to PNG, size: {len(png_data)} bytes")
 
         # Criar um objeto de imagem do PyMuPDF
         img = fitz.Pixmap(png_data)
@@ -104,13 +111,13 @@ def draw_signature(page, rect, text, style='cursive'):
             img = pix
 
         # Calcular dimensões e posição
-        scale_factor = min(rect.width / img.width, 1.5)  # Reduzir altura para ficar mais proporcional
-        signature_width = rect.width - 1
+        scale_factor = min(rect.width / img.width, 1.0)  # Ajuste para melhor proporção
+        signature_width = rect.width
         signature_height = img.height * scale_factor
 
         # Posicionar a imagem acima da linha
         x0 = rect.x0
-        y0 = rect.y0 - signature_height * 0.2  # Ajuste fino do espaçamento
+        y0 = rect.y0 - signature_height * 0.8  # Ajuste do espaçamento vertical
 
         # Inserir a imagem no PDF
         page.insert_image(
@@ -118,7 +125,7 @@ def draw_signature(page, rect, text, style='cursive'):
             pixmap=img
         )
 
-        logger.info(f"Successfully added signature with style {style}")
+        logger.info(f"Successfully added signature with style {style} at position {x0},{y0}")
 
     except Exception as e:
         logger.error(f"Erro ao criar assinatura: {str(e)}")
