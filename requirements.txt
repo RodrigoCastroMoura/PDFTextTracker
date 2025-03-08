@@ -14,3 +14,4 @@ reportlab
 svglib
 cairosvg
 svglib
+cairosvg

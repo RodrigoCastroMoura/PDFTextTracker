@@ -10,12 +10,45 @@ from cairosvg import svg2png
 logger = logging.getLogger(__name__)
 
 
-def create_signature_svg(text):
+def create_signature_svg(text, style='cursive'):
     """
     Cria um SVG realístico de uma assinatura manuscrita similar ao DocuSign
     """
-    # Cor DocuSign
-    stroke_color = "#0B5FE3"
+    # Estilos de assinatura DocuSign
+    styles = {
+        'cursive': {
+            'font': 'Dancing Script',
+            'size': '48px',
+            'color': '#0B5FE3',
+            'skew': '-10'
+        },
+        'elegant': {
+            'font': 'Alex Brush',
+            'size': '52px',
+            'color': '#0B5FE3',
+            'skew': '-8'
+        },
+        'handwritten': {
+            'font': 'Homemade Apple',
+            'size': '42px',
+            'color': '#0B5FE3',
+            'skew': '-5'
+        },
+        'artistic': {
+            'font': 'Pacifico',
+            'size': '44px',
+            'color': '#0B5FE3',
+            'skew': '-8'
+        },
+        'formal': {
+            'font': 'Mr De Haviland',
+            'size': '50px',
+            'color': '#0B5FE3',
+            'skew': '-12'
+        }
+    }
+
+    style_config = styles.get(style, styles['cursive'])
 
     # Calcular largura baseada no texto
     width = max(300, len(text) * 25)
@@ -24,12 +57,16 @@ def create_signature_svg(text):
     # Criar uma string SVG que simula uma assinatura manuscrita
     svg_template = f'''<?xml version="1.0" encoding="UTF-8" standalone="no"?>
     <svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}">
+        <style>
+            @import url('https://fonts.googleapis.com/css2?family={style_config["font"].replace(" ", "+")}');
+        </style>
         <text x="{width/2}" y="{height/2}"
               text-anchor="middle"
-              fill="{stroke_color}"
-              font-family="Dancing Script, cursive"
-              font-size="48px"
-              transform="skewX(-10)"> {text} </text></svg>'''
+              fill="{style_config['color']}"
+              font-family="{style_config['font']}, cursive"
+              font-size="{style_config['size']}"
+              transform="skewX({style_config['skew']})"> {text} </text>
+    </svg>'''
     return svg_template
 
 
@@ -38,20 +75,20 @@ def draw_signature(page, rect, text, style='cursive'):
     Insere uma imagem de assinatura no PDF
     """
     try:
-        # Gerar SVG da assinatura
-        svg_content = create_signature_svg(text)
+        # Gerar SVG da assinatura com o estilo selecionado
+        svg_content = create_signature_svg(text, style)
 
         # Converter SVG para PNG
         png_data = svg2png(bytestring=svg_content.encode('utf-8'),
-                           output_width=int(rect.width),
-                           background_color='transparent')
+                          output_width=int(rect.width),
+                          background_color='transparent')
 
         # Criar um objeto de imagem do PyMuPDF
         img = fitz.Pixmap(png_data)
 
         # Calcular dimensões e posição
         scale_factor = min(rect.width / img.width,
-                           1.5)  # Reduzir altura para ficar mais proporcional
+                          1.5)  # Reduzir altura para ficar mais proporcional
         signature_width = rect.width - 1
         signature_height = img.height * scale_factor
 
@@ -61,17 +98,17 @@ def draw_signature(page, rect, text, style='cursive'):
 
         # Inserir a imagem no PDF
         page.insert_image(fitz.Rect(x0, y0, x0 + signature_width,
-                                    y0 + signature_height),
-                          pixmap=img)
+                                   y0 + signature_height),
+                         pixmap=img)
 
     except Exception as e:
         logger.error(f"Erro ao criar assinatura: {str(e)}")
         # Fallback para texto simples em caso de erro
         page.insert_text(point=(rect.x0, rect.y0 - 10),
-                         text=text,
-                         color=(0, 0, 0.8),
-                         fontsize=12,
-                         fontname="Helv")
+                        text=text,
+                        color=(0, 0, 0.8),
+                        fontsize=12,
+                        fontname="Helv")
 
 
 def find_signature_lines(page):
@@ -171,16 +208,16 @@ def process_pdf_signatures(input_pdf_path,
                     rect = area['rect']
                     stats["signature_locations"].append({
                         "page":
-                        page_num,
+                            page_num,
                         "rect": [rect.x0, rect.y0, rect.x1, rect.y1],
                         "type":
-                        "signature_line",
+                            "signature_line",
                         "text":
-                        area['text'],
+                            area['text'],
                         "text_below":
-                        area['text_below'],
+                            area['text_below'],
                         "has_description":
-                        area['has_description']
+                            area['has_description']
                     })
 
                     # Adicionar assinatura se fornecido
