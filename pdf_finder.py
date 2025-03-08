@@ -3,64 +3,99 @@ import re
 import unicodedata
 import os
 import logging
+import io
+import base64
+from cairosvg import svg2png
 
 logger = logging.getLogger(__name__)
 
-def draw_signature(page, rect, text, style='cursive'):
+def create_signature_svg(text):
     """
-    Desenha uma assinatura estilizada no PDF usando curvas Bezier para simular escrita manual
+    Cria um SVG realístico de uma assinatura manuscrita similar ao DocuSign
     """
     # Cor DocuSign
-    signature_color = (0, 0, 0.8)  # Azul DocuSign
+    stroke_color = "#0B5FE3"
 
-    # Calcular posição
-    x0 = rect.x0
-    y0 = rect.y0 - 20  # Mais espaço acima da linha
-    width = rect.width
-    height = 30  # Altura maior para a assinatura
+    # Calcular largura baseada no texto
+    width = max(300, len(text) * 25)
+    height = 100
 
-    # Adicionar o nome com fonte mais fina
-    page.insert_text(
-        point=(x0, y0),
-        text=text,
-        fontsize=20,  # Tamanho maior
-        color=signature_color,
-        fontname="Helv",
-    )
+    # Criar o caminho da assinatura principal que flui naturalmente
+    signature_path = f"""
+        M {width * 0.1},{height * 0.6}
+        c {width * 0.15},-{height * 0.3}
+          {width * 0.3},-{height * 0.3}
+          {width * 0.4},0
+        s {width * 0.2},{height * 0.2}
+          {width * 0.3},0
+    """
 
-    # Adicionar linha ondulada decorativa
-    line_y = y0 + 25  # Posição da linha abaixo do texto
-    num_waves = int(width / 20)  # Número de ondulações
-    wave_width = width / num_waves
-    wave_height = 3  # Altura da ondulação
+    # Adicionar floreios decorativos mais suaves
+    flicks = []
+    for i in range(3):
+        x_start = width * (0.2 + i * 0.3)
+        y_start = height * 0.6
+        flicks.append(f"""
+            M {x_start},{y_start}
+            q {width * 0.05},-{height * 0.15}
+              {width * 0.1},0
+        """)
 
-    # Desenhar uma série de curvas Bezier para criar a linha ondulada
-    for i in range(num_waves):
-        x_start = x0 + i * wave_width
-        x_end = x_start + wave_width
-        x_mid = (x_start + x_end) / 2
+    svg_template = f'''<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+    <svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}">
+        <path d="{signature_path} {' '.join(flicks)}"
+              fill="none"
+              stroke="{stroke_color}"
+              stroke-width="2.5"
+              stroke-linecap="round"
+              stroke-linejoin="round"/>
+    </svg>
+    '''
+    return svg_template
 
-        # Pontos de controle para criar a curva suave
-        if i % 2 == 0:
-            # Onda para cima
-            page.draw_bezier(
-                (x_start, line_y),  # Ponto inicial
-                (x_mid - wave_width/4, line_y - wave_height),  # Controle 1
-                (x_mid + wave_width/4, line_y - wave_height),  # Controle 2
-                (x_end, line_y),  # Ponto final
-                color=signature_color,
-                width=0.7
-            )
-        else:
-            # Onda para baixo
-            page.draw_bezier(
-                (x_start, line_y),  # Ponto inicial
-                (x_mid - wave_width/4, line_y + wave_height),  # Controle 1
-                (x_mid + wave_width/4, line_y + wave_height),  # Controle 2
-                (x_end, line_y),  # Ponto final
-                color=signature_color,
-                width=0.7
-            )
+def draw_signature(page, rect, text, style='cursive'):
+    """
+    Insere uma imagem de assinatura no PDF
+    """
+    try:
+        # Gerar SVG da assinatura
+        svg_content = create_signature_svg(text)
+
+        # Converter SVG para PNG
+        png_data = svg2png(
+            bytestring=svg_content.encode('utf-8'),
+            output_width=int(rect.width),
+            background_color='transparent'
+        )
+
+        # Criar um objeto de imagem do PyMuPDF
+        img = fitz.Pixmap(png_data)
+
+        # Calcular dimensões e posição
+        scale_factor = min(rect.width / img.width, 0.4)  # Reduzir altura para ficar mais proporcional
+        signature_width = rect.width
+        signature_height = img.height * scale_factor
+
+        # Posicionar a imagem acima da linha
+        x0 = rect.x0
+        y0 = rect.y0 - signature_height * 1.1  # Ajuste fino do espaçamento
+
+        # Inserir a imagem no PDF
+        page.insert_image(
+            fitz.Rect(x0, y0, x0 + signature_width, y0 + signature_height),
+            pixmap=img
+        )
+
+    except Exception as e:
+        logger.error(f"Erro ao criar assinatura: {str(e)}")
+        # Fallback para texto simples em caso de erro
+        page.insert_text(
+            point=(rect.x0, rect.y0 - 10),
+            text=text,
+            color=(0, 0, 0.8),
+            fontsize=12,
+            fontname="Helv"
+        )
 
 def find_signature_lines(page):
     """
@@ -108,7 +143,7 @@ def find_signature_lines(page):
                         # Concatenar todo o texto da linha abaixo
                         text_below = " ".join(word[4] for word in words_by_y[next_y])
 
-                # Criar uma área retangular para a linha de assinatura
+                # Criar área retangular para a linha de assinatura
                 signature_area = {
                     'rect': fitz.Rect(x0, y0, x1, y1),
                     'type': 'signature_line',
