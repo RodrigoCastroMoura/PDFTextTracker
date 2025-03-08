@@ -10,67 +10,57 @@ def draw_signature(page, rect, text, style='cursive'):
     """
     Desenha uma assinatura estilizada no PDF usando curvas Bezier para simular escrita manual
     """
-    # Cor padrão DocuSign-like
-    signature_color = (0.13, 0.36, 0.81)  # Azul DocuSign
+    # Cor DocuSign
+    signature_color = (0, 0, 0.8)  # Azul DocuSign
 
     # Calcular posição
     x0 = rect.x0
-    y0 = rect.y0 - 12  # Ajustado para ficar mais próximo da linha
+    y0 = rect.y0 - 20  # Mais espaço acima da linha
     width = rect.width
-    height = 20  # Altura aproximada da assinatura
+    height = 30  # Altura maior para a assinatura
 
-    # Desenhar o nome usando uma curva Bezier para simular escrita cursiva
-    control_points = []
-    x_step = width / (len(text) + 1)
-    baseline = y0 + height * 0.6
-
-    # Criar pontos de controle para a curva principal
-    for i, char in enumerate(text):
-        x = x0 + i * x_step
-        # Variar a altura para criar um efeito mais natural
-        y_offset = height * 0.3 * (-1 if i % 2 == 0 else 1)
-        control_points.append((x, baseline + y_offset))
-
-    # Desenhar a curva principal
-    for i in range(len(control_points) - 1):
-        x1, y1 = control_points[i]
-        x2, y2 = control_points[i + 1]
-        cp1 = (x1 + x_step/3, y1)
-        cp2 = (x2 - x_step/3, y2)
-        page.draw_bezier((x1, y1), cp1, cp2, (x2, y2), color=signature_color, width=1.5)
-
-    # Adicionar o texto em uma fonte base mais fina
+    # Adicionar o nome com fonte mais fina
     page.insert_text(
         point=(x0, y0),
         text=text,
-        fontsize=16,
+        fontsize=20,  # Tamanho maior
         color=signature_color,
         fontname="Helv",
     )
 
-    # Adicionar linha decorativa suave abaixo da assinatura
-    line_y = baseline + height * 0.3
-    # Linha principal
-    page.draw_line(
-        (x0, line_y),
-        (x0 + width, line_y),
-        color=signature_color,
-        width=0.7
-    )
+    # Adicionar linha ondulada decorativa
+    line_y = y0 + 25  # Posição da linha abaixo do texto
+    num_waves = int(width / 20)  # Número de ondulações
+    wave_width = width / num_waves
+    wave_height = 3  # Altura da ondulação
 
-    # Adicionar pequenas ondulações decorativas na linha
-    wave_height = 2
-    wave_width = width / 10
-    for i in range(10):
+    # Desenhar uma série de curvas Bezier para criar a linha ondulada
+    for i in range(num_waves):
         x_start = x0 + i * wave_width
-        page.draw_bezier(
-            (x_start, line_y),
-            (x_start + wave_width/3, line_y + wave_height),
-            (x_start + 2*wave_width/3, line_y - wave_height),
-            (x_start + wave_width, line_y),
-            color=signature_color,
-            width=0.3
-        )
+        x_end = x_start + wave_width
+        x_mid = (x_start + x_end) / 2
+
+        # Pontos de controle para criar a curva suave
+        if i % 2 == 0:
+            # Onda para cima
+            page.draw_bezier(
+                (x_start, line_y),  # Ponto inicial
+                (x_mid - wave_width/4, line_y - wave_height),  # Controle 1
+                (x_mid + wave_width/4, line_y - wave_height),  # Controle 2
+                (x_end, line_y),  # Ponto final
+                color=signature_color,
+                width=0.7
+            )
+        else:
+            # Onda para baixo
+            page.draw_bezier(
+                (x_start, line_y),  # Ponto inicial
+                (x_mid - wave_width/4, line_y + wave_height),  # Controle 1
+                (x_mid + wave_width/4, line_y + wave_height),  # Controle 2
+                (x_end, line_y),  # Ponto final
+                color=signature_color,
+                width=0.7
+            )
 
 def find_signature_lines(page):
     """
