@@ -110,32 +110,23 @@ function generateSignatureSVG(name, style) {
   const signatureStyle = signatureStyles[style] || signatureStyles.cursive;
   const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
 
-  // Calculate dimensions based on text length with better minimums and proportions
-  const minWidth = 200;
-  const maxWidth = 500;
-  const charWidth = 20; // Width per character
-  const width = Math.min(maxWidth, Math.max(minWidth, name.length * charWidth));
-  const height = Math.min(100, width * 0.4); // Height proportional to width
+  // Calculate width based on text length
+  const width = Math.max(300, name.length * 25);
+  const height = 100;
 
   svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
   svg.setAttribute("width", "100%");
   svg.setAttribute("height", "100%");
-  svg.setAttribute("preserveAspectRatio", "xMidYMid meet");
 
   // Create text element for signature
   const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
   text.setAttribute("x", width/2);
   text.setAttribute("y", height/2);
-  text.setAttribute("dominant-baseline", "central");
   text.setAttribute("text-anchor", "middle");
   text.setAttribute("fill", signatureStyle.color);
-
-  // Adjust font size based on width
-  const fontSize = Math.min(parseInt(signatureStyle.fontSize), width * 0.2);
-
   text.setAttribute("style", `
     font-family: ${signatureStyle.fontFamily};
-    font-size: ${fontSize}px;
+    font-size: ${signatureStyle.fontSize};
     transform: skewX(${signatureStyle.skewAngle}deg);
   `);
   text.textContent = name;
@@ -147,10 +138,9 @@ function generateSignatureSVG(name, style) {
 // Function to update signature previews
 function updateSignaturePreviews(name) {
   const previews = document.querySelectorAll('.signature-preview');
-  const previewName = name || 'Nome';
   previews.forEach(preview => {
     const style = preview.dataset.style;
     preview.innerHTML = '';
-    preview.appendChild(generateSignatureSVG(previewName, style));
+    preview.appendChild(generateSignatureSVG(name || 'Nome', style));
   });
 }

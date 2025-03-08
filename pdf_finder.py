@@ -50,25 +50,21 @@ def create_signature_svg(text, style='cursive'):
 
     style_config = styles.get(style, styles['cursive'])
 
-    # Calcular dimensões com melhores proporções
-    min_width = 200
-    max_width = 500
-    char_width = 20
-    width = min(max_width, max(min_width, len(text) * char_width))
-    height = min(100, width * 0.4)
+    # Calcular largura baseada no texto
+    width = max(300, len(text) * 25)
+    height = 100
 
     # Criar uma string SVG que simula uma assinatura manuscrita
     svg_template = f'''<?xml version="1.0" encoding="UTF-8" standalone="no"?>
-    <svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" viewBox="0 0 {width} {height}" preserveAspectRatio="xMidYMid meet">
+    <svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}">
         <style>
             @import url('https://fonts.googleapis.com/css2?family={style_config["font"].replace(" ", "+")}');
         </style>
         <text x="{width/2}" y="{height/2}"
               text-anchor="middle"
-              dominant-baseline="central"
               fill="{style_config['color']}"
               font-family="{style_config['font']}, cursive"
-              font-size="{min(int(style_config['size'].replace('px', '')), width * 0.2)}px"
+              font-size="{style_config['size']}"
               transform="skewX({style_config['skew']})"> {text} </text>
     </svg>'''
     return svg_template
@@ -79,40 +75,40 @@ def draw_signature(page, rect, text, style='cursive'):
     Insere uma imagem de assinatura no PDF
     """
     try:
-        # Gerar SVG da assinatura
+        # Gerar SVG da assinatura com o estilo selecionado
         svg_content = create_signature_svg(text, style)
 
         # Converter SVG para PNG
         png_data = svg2png(bytestring=svg_content.encode('utf-8'),
-                           output_width=int(rect.width),
-                           background_color='transparent')
+                          output_width=int(rect.width),
+                          background_color='transparent')
 
         # Criar um objeto de imagem do PyMuPDF
         img = fitz.Pixmap(png_data)
 
         # Calcular dimensões e posição
         scale_factor = min(rect.width / img.width,
-                           1.5)  # Reduzir altura para ficar mais proporcional
-        signature_width = rect.width
+                          1.5)  # Reduzir altura para ficar mais proporcional
+        signature_width = rect.width - 1
         signature_height = img.height * scale_factor
 
         # Posicionar a imagem acima da linha
         x0 = rect.x0
-        y0 = rect.y0 - signature_height * 0.2  # Ajuste fino do espaçamento
+        y0 = rect.y0 - signature_height * 1.1  # Ajuste fino do espaçamento
 
         # Inserir a imagem no PDF
         page.insert_image(fitz.Rect(x0, y0, x0 + signature_width,
-                                    y0 + signature_height),
-                          pixmap=img)
+                                   y0 + signature_height),
+                         pixmap=img)
 
     except Exception as e:
         logger.error(f"Erro ao criar assinatura: {str(e)}")
         # Fallback para texto simples em caso de erro
         page.insert_text(point=(rect.x0, rect.y0 - 10),
-                         text=text,
-                         color=(0, 0, 0.8),
-                         fontsize=12,
-                         fontname="Helv")
+                        text=text,
+                        color=(0, 0, 0.8),
+                        fontsize=12,
+                        fontname="Helv")
 
 
 def find_signature_lines(page):
