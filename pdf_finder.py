@@ -20,35 +20,17 @@ def create_signature_svg(text):
     width = max(300, len(text) * 25)
     height = 100
 
-    # Criar o caminho da assinatura principal que flui naturalmente
-    signature_path = f"""
-        M {width * 0.1},{height * 0.6}
-        c {width * 0.15},-{height * 0.3}
-          {width * 0.3},-{height * 0.3}
-          {width * 0.4},0
-        s {width * 0.2},{height * 0.2}
-          {width * 0.3},0
-    """
-
-    # Adicionar floreios decorativos mais suaves
-    flicks = []
-    for i in range(3):
-        x_start = width * (0.2 + i * 0.3)
-        y_start = height * 0.6
-        flicks.append(f"""
-            M {x_start},{y_start}
-            q {width * 0.05},-{height * 0.15}
-              {width * 0.1},0
-        """)
-
+    # Criar uma string SVG que simula uma assinatura manuscrita
     svg_template = f'''<?xml version="1.0" encoding="UTF-8" standalone="no"?>
     <svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}">
-        <path d="{signature_path} {' '.join(flicks)}"
-              fill="none"
-              stroke="{stroke_color}"
-              stroke-width="2.5"
-              stroke-linecap="round"
-              stroke-linejoin="round"/>
+        <text x="{width/2}" y="{height/2}"
+              text-anchor="middle"
+              fill="{stroke_color}"
+              font-family="Dancing Script, cursive"
+              font-size="48px"
+              transform="skewX(-10)">
+            {text}
+        </text>
     </svg>
     '''
     return svg_template
