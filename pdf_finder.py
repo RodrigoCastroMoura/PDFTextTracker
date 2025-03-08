@@ -80,35 +80,35 @@ def draw_signature(page, rect, text, style='cursive'):
 
         # Converter SVG para PNG
         png_data = svg2png(bytestring=svg_content.encode('utf-8'),
-                          output_width=int(rect.width),
-                          background_color='transparent')
+                           output_width=int(rect.width),
+                           background_color='transparent')
 
         # Criar um objeto de imagem do PyMuPDF
         img = fitz.Pixmap(png_data)
 
         # Calcular dimensões e posição
         scale_factor = min(rect.width / img.width,
-                          1.5)  # Reduzir altura para ficar mais proporcional
+                           1.5)  # Reduzir altura para ficar mais proporcional
         signature_width = rect.width - 1
         signature_height = img.height * scale_factor
 
         # Posicionar a imagem acima da linha
         x0 = rect.x0
-        y0 = rect.y0 - signature_height * 1.1  # Ajuste fino do espaçamento
+        y0 = rect.y0 - signature_height * 0.2  # Ajuste fino do espaçamento
 
         # Inserir a imagem no PDF
         page.insert_image(fitz.Rect(x0, y0, x0 + signature_width,
-                                   y0 + signature_height),
-                         pixmap=img)
+                                    y0 + signature_height),
+                          pixmap=img)
 
     except Exception as e:
         logger.error(f"Erro ao criar assinatura: {str(e)}")
         # Fallback para texto simples em caso de erro
         page.insert_text(point=(rect.x0, rect.y0 - 10),
-                        text=text,
-                        color=(0, 0, 0.8),
-                        fontsize=12,
-                        fontname="Helv")
+                         text=text,
+                         color=(0, 0, 0.8),
+                         fontsize=12,
+                         fontname="Helv")
 
 
 def find_signature_lines(page):
@@ -208,16 +208,16 @@ def process_pdf_signatures(input_pdf_path,
                     rect = area['rect']
                     stats["signature_locations"].append({
                         "page":
-                            page_num,
+                        page_num,
                         "rect": [rect.x0, rect.y0, rect.x1, rect.y1],
                         "type":
-                            "signature_line",
+                        "signature_line",
                         "text":
-                            area['text'],
+                        area['text'],
                         "text_below":
-                            area['text_below'],
+                        area['text_below'],
                         "has_description":
-                            area['has_description']
+                        area['has_description']
                     })
 
                     # Adicionar assinatura se fornecido
