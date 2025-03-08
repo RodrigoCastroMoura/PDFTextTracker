@@ -6,6 +6,12 @@ const signatureStyles = {
     color: "#0B5FE3",
     skewAngle: "-10"
   },
+  elegant: {
+    fontFamily: "Alex Brush, cursive",
+    fontSize: "52px",
+    color: "#0B5FE3",
+    skewAngle: "-8"
+  },
   handwritten: {
     fontFamily: "Homemade Apple, cursive",
     fontSize: "42px",
@@ -17,8 +23,88 @@ const signatureStyles = {
     fontSize: "44px",
     color: "#0B5FE3",
     skewAngle: "-8"
+  },
+  formal: {
+    fontFamily: "Mr De Haviland, cursive",
+    fontSize: "50px",
+    color: "#0B5FE3",
+    skewAngle: "-12"
   }
 };
+
+let isDrawing = false;
+let signatureCanvas = null;
+let ctx = null;
+
+function initializeDrawingCanvas(containerId) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+
+  // Create canvas for drawing
+  signatureCanvas = document.createElement('canvas');
+  signatureCanvas.width = container.offsetWidth;
+  signatureCanvas.height = 200;
+  signatureCanvas.style.border = '1px solid var(--bs-gray-400)';
+  signatureCanvas.style.backgroundColor = 'white';
+  container.appendChild(signatureCanvas);
+
+  ctx = signatureCanvas.getContext('2d');
+  ctx.strokeStyle = '#0B5FE3';
+  ctx.lineWidth = 2;
+  ctx.lineCap = 'round';
+
+  // Add drawing event listeners
+  signatureCanvas.addEventListener('mousedown', startDrawing);
+  signatureCanvas.addEventListener('mousemove', draw);
+  signatureCanvas.addEventListener('mouseup', stopDrawing);
+  signatureCanvas.addEventListener('mouseleave', stopDrawing);
+
+  // Add touch support
+  signatureCanvas.addEventListener('touchstart', handleTouch);
+  signatureCanvas.addEventListener('touchmove', handleTouch);
+  signatureCanvas.addEventListener('touchend', stopDrawing);
+}
+
+function startDrawing(e) {
+  isDrawing = true;
+  ctx.beginPath();
+  const rect = signatureCanvas.getBoundingClientRect();
+  ctx.moveTo(e.clientX - rect.left, e.clientY - rect.top);
+}
+
+function draw(e) {
+  if (!isDrawing) return;
+  const rect = signatureCanvas.getBoundingClientRect();
+  ctx.lineTo(e.clientX - rect.left, e.clientY - rect.top);
+  ctx.stroke();
+}
+
+function stopDrawing() {
+  isDrawing = false;
+}
+
+function handleTouch(e) {
+  e.preventDefault();
+  const touch = e.touches[0];
+  const mouseEvent = new MouseEvent(e.type === 'touchstart' ? 'mousedown' : 'mousemove', {
+    clientX: touch.clientX,
+    clientY: touch.clientY
+  });
+  signatureCanvas.dispatchEvent(mouseEvent);
+}
+
+function clearSignature() {
+  if (ctx) {
+    ctx.clearRect(0, 0, signatureCanvas.width, signatureCanvas.height);
+  }
+}
+
+function getSignatureImage() {
+  if (signatureCanvas) {
+    return signatureCanvas.toDataURL('image/png');
+  }
+  return null;
+}
 
 function generateSignatureSVG(name, style) {
   const signatureStyle = signatureStyles[style] || signatureStyles.cursive;

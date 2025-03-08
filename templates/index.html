@@ -21,7 +21,7 @@
             </div>
 
             <div class="mb-3">
-                <label class="form-label">Estilo da Assinatura</label>
+                <label class="form-label">Escolha o Estilo da Assinatura</label>
                 <div class="row g-3">
                     <div class="col-md-4">
                         <div class="card h-100">
@@ -65,6 +65,48 @@
                             </div>
                         </div>
                     </div>
+                    <div class="col-md-4">
+                        <div class="card h-100">
+                            <div class="card-body text-center">
+                                <div class="signature-preview" data-style="formal" style="height: 100px;"></div>
+                                <div class="form-check mt-2">
+                                    <input class="form-check-input" type="radio" name="signature_style" 
+                                           id="style4" value="formal">
+                                    <label class="form-check-label" for="style4">
+                                        Formal
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card h-100">
+                            <div class="card-body text-center">
+                                <div class="signature-preview" data-style="elegant" style="height: 100px;"></div>
+                                <div class="form-check mt-2">
+                                    <input class="form-check-input" type="radio" name="signature_style" 
+                                           id="style5" value="elegant">
+                                    <label class="form-check-label" for="style5">
+                                        Elegante
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card h-100">
+                            <div class="card-body text-center">
+                                <h6>Desenhar Assinatura</h6>
+                                <div id="signatureDrawing"></div>
+                                <div class="btn-group mt-2">
+                                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="clearSignature()">
+                                        Limpar
+                                    </button>
+                                    <input type="hidden" name="drawn_signature" id="drawn_signature">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -98,13 +140,25 @@
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const signerNameInput = document.getElementById('signer_name');
+    const form = document.getElementById('pdfForm');
 
     // Initialize signature previews
     updateSignaturePreviews();
 
+    // Initialize drawing canvas
+    initializeDrawingCanvas('signatureDrawing');
+
     // Update previews when name changes
     signerNameInput.addEventListener('input', function(e) {
         updateSignaturePreviews(e.target.value);
+    });
+
+    // Handle form submission
+    form.addEventListener('submit', function(e) {
+        const drawnSignature = getSignatureImage();
+        if (drawnSignature) {
+            document.getElementById('drawn_signature').value = drawnSignature;
+        }
     });
 });
 </script>

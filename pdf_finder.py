@@ -9,16 +9,27 @@ from cairosvg import svg2png
 
 logger = logging.getLogger(__name__)
 
-def create_signature_svg(text):
+def calculate_font_size(rect_width, text_length):
+    """
+    Calcula o tamanho ideal da fonte baseado na largura da linha e comprimento do texto
+    """
+    # Quanto maior o texto, menor o tamanho da fonte para caber na linha
+    base_size = min(rect_width / (text_length * 0.7), rect_width / 10)
+    return max(min(base_size, 72), 24)  # Limita entre 24 e 72 pontos
+
+def create_signature_svg(text, rect_width):
     """
     Cria um SVG realístico de uma assinatura manuscrita similar ao DocuSign
     """
     # Cor DocuSign
     stroke_color = "#0B5FE3"
 
-    # Calcular largura baseada no texto
-    width = max(300, len(text) * 25)
-    height = 100
+    # Calcular tamanho da fonte baseado na largura do retângulo
+    font_size = calculate_font_size(rect_width, len(text))
+
+    # Ajustar largura do SVG proporcionalmente
+    width = rect_width
+    height = font_size * 2  # Altura proporcional à fonte
 
     # Criar uma string SVG que simula uma assinatura manuscrita
     svg_template = f'''<?xml version="1.0" encoding="UTF-8" standalone="no"?>
@@ -27,7 +38,7 @@ def create_signature_svg(text):
               text-anchor="middle"
               fill="{stroke_color}"
               font-family="Dancing Script, cursive"
-              font-size="48px"
+              font-size="{font_size}px"
               transform="skewX(-10)">
             {text}
         </text>
@@ -40,8 +51,8 @@ def draw_signature(page, rect, text, style='cursive'):
     Insere uma imagem de assinatura no PDF
     """
     try:
-        # Gerar SVG da assinatura
-        svg_content = create_signature_svg(text)
+        # Gerar SVG da assinatura com tamanho ajustado
+        svg_content = create_signature_svg(text, rect.width)
 
         # Converter SVG para PNG
         png_data = svg2png(
